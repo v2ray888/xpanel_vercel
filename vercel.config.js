@@ -15,6 +15,10 @@ module.exports = {
   ],
   routes: [
     {
+      src: '/api/hello',
+      dest: 'api/hello.ts'
+    },
+    {
       src: '/api/test',
       dest: 'api/test.ts'
     },
