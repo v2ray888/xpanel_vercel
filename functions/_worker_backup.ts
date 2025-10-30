@@ -403,7 +403,7 @@ app.get('/api/referrals/users', async (c) => {
 
 // Payment methods route
 app.get('/api/payments/methods', async (c) => {
-  const response = await paymentMethodsHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await paymentMethodsHandler()
   return response
 })
 

@@ -630,7 +630,7 @@ console.log('API routes registered');
 
 // Public API routes
 app.get('/api/plans', async (c) => {
-  const response = await plansHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await plansHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   // 确保响应头设置正确的字符编码
   response.headers.set('Content-Type', 'application/json; charset=utf-8')
   return response
@@ -662,7 +662,7 @@ app.options('/api/plans', (c) => {
 // Auth routes
 
 app.post('/api/auth/login', async (c) => {
-  const response = await loginHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await loginHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
@@ -690,7 +690,7 @@ app.options('/api/auth/login', (c) => {
 })
 
 app.post('/api/auth/register', async (c) => {
-  const response = await registerHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await registerHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
@@ -718,7 +718,7 @@ app.options('/api/auth/register', (c) => {
 })
 
 app.post('/api/auth/admin-login', async (c) => {
-  const response = await adminLoginHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminLoginHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
@@ -746,45 +746,45 @@ app.options('/api/auth/admin-login', (c) => {
 })
 
 app.get('/api/auth/me', async (c) => {
-  const response = await meHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await meHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.get('/api/user/dashboard', async (c) => {
-  const response = await dashboardHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await dashboardHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.get('/api/user/orders', async (c) => {
-  const response = await userOrdersHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await userOrdersHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 // User profile routes
 app.get('/api/users/profile', async (c) => {
-  const response = await userProfileHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await userProfileHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.put('/api/users/profile', async (c) => {
-  const response = await userProfilePutHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await userProfilePutHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 // User subscription routes
 app.get('/api/user/subscription', async (c) => {
-  const response = await userSubscriptionHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await userSubscriptionHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.get('/api/user/subscription-links', async (c) => {
-  const response = await userSubscriptionLinksHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await userSubscriptionLinksHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 // User servers route
 app.get('/api/user/servers', async (c) => {
-  const response = await userServersHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await userServersHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
@@ -796,13 +796,13 @@ app.get('/api/user/servers', async (c) => {
 
 // Admin stats route
 app.get('/api/admin/stats', async (c) => {
-  const response = await adminStatsHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminStatsHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 // Admin users routes
 app.get('/api/admin/users', async (c) => {
-  const response = await adminUsersHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminUsersHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
@@ -814,18 +814,18 @@ app.get('/api/admin/orders', async (c) => {
 
 // Admin recent data routes
 app.get('/api/admin/recent-orders', async (c) => {
-  const response = await adminRecentOrdersHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminRecentOrdersHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.get('/api/admin/recent-users', async (c) => {
-  const response = await adminRecentUsersHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminRecentUsersHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 // Admin plans routes
 app.get('/api/admin/plans', async (c) => {
-  const response = await adminPlansHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminPlansHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
@@ -847,23 +847,23 @@ app.post('/api/admin/servers', async (c) => {
 
 // Admin redemption routes
 app.get('/api/admin/redemption', async (c) => {
-  const response = await adminRedemptionHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminRedemptionHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.post('/api/admin/redemption/generate', async (c) => {
-  const response = await adminRedemptionGenerateHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminRedemptionGenerateHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.post('/api/admin/redemption/batch-delete', async (c) => {
-  const response = await adminRedemptionBatchDeleteHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminRedemptionBatchDeleteHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 // Redemption redeem route
 app.post('/api/redemption/redeem', async (c) => {
-  const response = await redemptionRedeemHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await redemptionRedeemHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
@@ -881,35 +881,35 @@ app.get('/api/referrals/stats', async (c) => {
 })
 
 app.get('/api/referrals/commissions', async (c) => {
-  const response = await referralCommissionsHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await referralCommissionsHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.get('/api/referrals/users', async (c) => {
-  const response = await referralUsersHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await referralUsersHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 // Payment methods route
 app.get('/api/payments/methods', async (c) => {
-  const response = await paymentMethodsHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await paymentMethodsHandler()
   return response
 })
 
 // Withdrawals routes
 app.get('/api/withdrawals', async (c) => {
-  const response = await withdrawalsHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await withdrawalsHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 app.post('/api/withdrawals', async (c) => {
-  const response = await withdrawalsPostHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await withdrawalsPostHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
 // Admin finance stats route
 app.get('/api/admin/finance/stats', async (c) => {
-  const response = await adminFinanceStatsHandler({ request: c.req.raw, env: c.env } as any)
+  const response = await adminFinanceStatsHandler({ request: c.req.raw, env: c.env, params: {}, data: {}, next: async () => {} } as any)
   return response
 })
 
