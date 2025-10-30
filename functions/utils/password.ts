@@ -1,13 +1,4 @@
 // Password utility functions that work in both Node.js and Edge environments
-let bcrypt: any;
-
-// Try to import bcryptjs, fallback to Web Crypto API if not available
-try {
-  bcrypt = await import('bcryptjs');
-} catch (error) {
-  console.warn('bcryptjs not available, using Web Crypto API as fallback');
-  bcrypt = null;
-}
 
 /**
  * Hash a password using bcrypt or Web Crypto API
@@ -16,10 +7,11 @@ try {
  * @returns The hashed password
  */
 export async function hashPassword(password: string, saltRounds: number = 10): Promise<string> {
-  if (bcrypt && typeof bcrypt.hash === 'function') {
-    // Use bcryptjs
+  try {
+    // Dynamically import bcryptjs only when needed
+    const bcrypt = await import('bcryptjs');
     return await bcrypt.hash(password, saltRounds);
-  } else {
+  } catch (error) {
     // Fallback to Web Crypto API
     throw new Error('Password hashing not implemented for Edge environment');
   }
@@ -32,10 +24,11 @@ export async function hashPassword(password: string, saltRounds: number = 10): P
  * @returns True if the passwords match, false otherwise
  */
 export async function comparePassword(password: string, hash: string): Promise<boolean> {
-  if (bcrypt && typeof bcrypt.compare === 'function') {
-    // Use bcryptjs
+  try {
+    // Dynamically import bcryptjs only when needed
+    const bcrypt = await import('bcryptjs');
     return await bcrypt.compare(password, hash);
-  } else {
+  } catch (error) {
     // Fallback to Web Crypto API
     throw new Error('Password comparison not implemented for Edge environment');
   }
