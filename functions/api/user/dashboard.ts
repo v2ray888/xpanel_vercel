@@ -163,7 +163,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database; JWT_SECRET: string }>
 }
 
 // OPTIONS /api/user/dashboard (for CORS preflight)
-export const onRequestOptions: PagesFunction = async (context) => {
+export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, {
     status: 200,
     headers: {

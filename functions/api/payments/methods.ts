@@ -12,7 +12,7 @@ export async function onRequestOptions() {
   })
 }
 
-export async function onRequestGet(context: any) {
+export async function onRequestGet() {
   try {
     // Return available payment methods
     const paymentMethods = [

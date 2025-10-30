@@ -42,13 +42,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database; JWT_SECRET: string }>
       ORDER BY s.sort_order ASC, s.name ASC
     `).all()
 
-    // Get active EdgeTunnel groups and their nodes
-    const edgeTunnelGroupsResult = await db.prepare(`
-      SELECT g.id, g.name, g.description, g.api_endpoint, g.max_users, g.current_users
-      FROM edgetunnel_groups g
-      WHERE g.is_active = 1 AND g.status = 1
-      ORDER BY g.name ASC
-    `).all()
+
 
     // Get EdgeTunnel nodes for active groups
     const edgeTunnelNodesResult = await db.prepare(`
@@ -221,7 +215,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database; JWT_SECRET: string }>
   }
 }
 
-export const onRequestOptions: PagesFunction = async (context) => {
+export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, {
     status: 200,
     headers: {
