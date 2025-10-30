@@ -111,6 +111,17 @@ npm run deploy
 npm run deploy:all
 ```
 
+### 7. 通过 Git 部署到 Vercel
+
+确保代码已推送到 GitHub：
+```bash
+git add .
+git commit -m "Prepare for Vercel deployment"
+git push origin main
+```
+
+然后按照 [GIT_DEPLOYMENT_VERCEL.md](GIT_DEPLOYMENT_VERCEL.md) 中的说明连接 Vercel 到您的 GitHub 仓库并配置环境变量。
+
 ## 🔧 配置说明
 
 ### Cloudflare Pages 设置

@@ -71,8 +71,19 @@ npm run deploy:vercel
 在 Vercel 项目设置中配置以下环境变量：
 
 - `DATABASE_URL`: PostgreSQL 连接字符串
+  - 值: `postgresql://neondb_owner:npg_VW5Xv1hyzcTI@ep-divine-sky-adw4ohco-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require`
 - `JWT_SECRET`: JWT 签名密钥
+  - 值: 一个安全的随机字符串（建议至少32个字符）
 - `PAYMENT_SECRET`: 支付回调验证密钥
+  - 值: 一个安全的随机字符串（建议至少32个字符）
+  
+**配置步骤**:
+1. 登录 Vercel 控制台
+2. 进入您的项目
+3. 点击 "Settings" 选项卡
+4. 在左侧菜单中选择 "Environment Variables"
+5. 添加上述环境变量及其对应的值
+6. 点击 "Save" 保存
 
 ### 数据库配置
 
