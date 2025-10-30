@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
-import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { comparePassword, hashPassword } from '../../utils/password';
 
 type Bindings = {
   DB: D1Database
@@ -110,13 +110,13 @@ app.put('/password', async (c) => {
     }
 
     // Verify current password
-    const isValidPassword = await bcrypt.compare(current_password, user.password as string)
+    const isValidPassword = await comparePassword(current_password, user.password as string)
     if (!isValidPassword) {
       throw new HTTPException(400, { message: '当前密码错误' })
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(new_password, 10)
+    const hashedPassword = await hashPassword(new_password, 10)
 
     // Update password
     await c.env.DB.prepare(`

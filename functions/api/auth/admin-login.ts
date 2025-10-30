@@ -65,8 +65,8 @@ export const onRequestPost = async ({ request, env }: RequestContext) => {
     }
 
     // 验证密码
-    const bcrypt = await import('bcryptjs');
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    const { comparePassword } = await import('../../utils/password');
+    const isValidPassword = await comparePassword(password, user.password_hash);
     if (!isValidPassword) {
       return new Response(
         JSON.stringify({

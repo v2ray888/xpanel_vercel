@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
 import { sign } from 'hono/jwt';
 import { getDB } from '../../utils/db';
+import { comparePassword } from '../../utils/password';
 
 const loginSchema = z.object({
   email: z.string().email('请输入有效的邮箱地址'),
@@ -27,7 +27,7 @@ export const onRequestPost: PagesFunction<{ DB: D1Database; JWT_SECRET: string }
       return new Response(JSON.stringify({ success: false, message: '账户已被禁用' }), { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
       return new Response(JSON.stringify({ success: false, message: '用户不存在或密码错误' }), { status: 401, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }

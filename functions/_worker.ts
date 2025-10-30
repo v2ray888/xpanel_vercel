@@ -1,7 +1,6 @@
 import { Hono } from 'hono'
 import { jwt, sign } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
-import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { adminRoutes } from './api/routes/admin'
 import { userRoutes } from './api/routes/users'

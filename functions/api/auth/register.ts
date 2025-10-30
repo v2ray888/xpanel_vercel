@@ -1,8 +1,8 @@
 // functions/api/auth/register.ts
 import { sign } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
-import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { hashPassword } from '../../utils/password';
 
 const registerSchema = z.object({
   email: z.string().email('请输入有效的邮箱地址'),
@@ -61,7 +61,7 @@ export const onRequestPost = async ({ request, env }: { request: Request, env: a
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 10)
+    const passwordHash = await hashPassword(password, 10)
     
     // Generate unique referral code
     let newReferralCode = generateReferralCode()
