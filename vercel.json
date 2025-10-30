@@ -2,14 +2,30 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/hello.ts",
-      "use": "@vercel/node"
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "dist/**",
+          "functions/**",
+          "database/**"
+        ]
+      }
     }
   ],
   "routes": [
     {
-      "src": "/api/hello",
-      "dest": "api/hello.ts"
+      "src": "/api/(.*)",
+      "dest": "api/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "dist/$1"
     }
-  ]
+  ],
+  "env": {
+    "DATABASE_URL": "postgresql://neondb_owner:npg_VW5Xv1hyzcTI@ep-divine-sky-adw4ohco-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+    "JWT_SECRET": "your-super-secret-jwt-key-for-local-development-only-do-not-use-in-production",
+    "PAYMENT_SECRET": "ssUl$ZWvY+A_To12A;[pJA2hcG(M)[E1"
+  }
 }
