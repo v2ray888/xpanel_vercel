@@ -891,7 +891,7 @@ app.get('/api/referrals/users', async (c) => {
 })
 
 // Payment methods route
-app.get('/api/payments/methods', async (c) => {
+app.get('/api/payments/methods', async () => {
   const response = await paymentMethodsHandler()
   return response
 })
