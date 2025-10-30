@@ -11,6 +11,10 @@
           "database/**"
         ]
       }
+    },
+    {
+      "src": "dist/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
