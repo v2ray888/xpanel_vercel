@@ -1,5 +1,9 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
+export const config = {
+  runtime: 'nodejs',
+};
+
 export default (req: VercelRequest, res: VercelResponse) => {
   // 测试环境变量
   const databaseUrl = process.env.DATABASE_URL;
