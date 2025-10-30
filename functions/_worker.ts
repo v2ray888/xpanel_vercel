@@ -1184,6 +1184,207 @@ app.get('/api/test-env', async (c) => {
   return c.json({ success: false, message: 'Route not implemented' }, 500)
 })
 
+// Database initialization route
+app.post('/api/db-init', async (c) => {
+  try {
+    const db = c.env.DB;
+    
+    // For PostgreSQL, we need to check if tables exist and create them if not
+    if (db && typeof db.query === 'function') {
+      // Check if users table exists
+      const userTableCheck = await db.query(`
+        SELECT table_name FROM information_schema.tables 
+        WHERE table_name = 'users'
+      `);
+      
+      if (userTableCheck.rows.length === 0) {
+        // Create all necessary tables
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            name VARCHAR(100),
+            role INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Create other tables
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS plans (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            price DECIMAL(10,2) NOT NULL,
+            duration INTEGER NOT NULL,
+            features JSONB,
+            is_active INTEGER DEFAULT 1,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS orders (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            plan_id INTEGER NOT NULL,
+            amount DECIMAL(10,2) NOT NULL,
+            status INTEGER DEFAULT 0,
+            payment_method VARCHAR(50),
+            transaction_id VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (plan_id) REFERENCES plans(id)
+          )
+        `);
+        
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS user_subscriptions (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            plan_id INTEGER NOT NULL,
+            order_id INTEGER NOT NULL,
+            start_date TIMESTAMP NOT NULL,
+            end_date TIMESTAMP NOT NULL,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (plan_id) REFERENCES plans(id),
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+          )
+        `);
+        
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS servers (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            host VARCHAR(255) NOT NULL,
+            port INTEGER NOT NULL,
+            protocol VARCHAR(10) DEFAULT 'https',
+            country VARCHAR(100),
+            city VARCHAR(100),
+            is_active INTEGER DEFAULT 1,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS user_servers (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            server_id INTEGER NOT NULL,
+            subscription_id INTEGER NOT NULL,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            is_active INTEGER DEFAULT 1,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (server_id) REFERENCES servers(id),
+            FOREIGN KEY (subscription_id) REFERENCES user_subscriptions(id)
+          )
+        `);
+        
+        // Insert default admin user (password is admin123, hashed)
+        await db.query(`
+          INSERT INTO users (email, password, name, role) 
+          VALUES ('admin@example.com', '$2a$10$8K1p/a0dhrxiowP.dnkgNORTWgdEDHn5L2/xjpEWuC.QQv4rKO9jO', 'Admin', 1)
+          ON CONFLICT (email) DO NOTHING
+        `);
+        
+        // Insert default plans
+        await db.query(`
+          INSERT INTO plans (name, description, price, duration, features, sort_order) 
+          VALUES 
+          ('基础套餐', '适合个人用户', 9.99, 30, '{"connections": 1, "devices": 3, "support": "基础"}', 1),
+          ('高级套餐', '适合小团队', 19.99, 30, '{"connections": 5, "devices": 10, "support": "优先"}', 2),
+          ('企业套餐', '适合企业用户', 49.99, 30, '{"connections": 20, "devices": 50, "support": "24/7"}', 3)
+          ON CONFLICT DO NOTHING
+        `);
+        
+        return c.json({ 
+          success: true, 
+          message: 'Database initialized successfully',
+          tablesCreated: ['users', 'plans', 'orders', 'user_subscriptions', 'servers', 'user_servers']
+        });
+      } else {
+        return c.json({ 
+          success: true, 
+          message: 'Database already initialized'
+        });
+      }
+    } else {
+      return c.json({ 
+        success: false, 
+        message: 'PostgreSQL database not available' 
+      }, 500);
+    }
+  } catch (error: any) {
+    console.error('Database initialization error:', error);
+    return c.json({ 
+      success: false, 
+      message: 'Database initialization failed: ' + error.message
+    }, 500);
+  }
+})
+
+// Database test route
+app.get('/api/db-test', async (c) => {
+  try {
+    const db = c.env.DB;
+    
+    if (db && typeof db.query === 'function') {
+      // Test connection by querying plans table
+      const result = await db.query(`
+        SELECT table_name FROM information_schema.tables 
+        WHERE table_name = 'plans'
+      `);
+      
+      let plansInfo = '';
+      if (result.rows.length === 0) {
+        plansInfo = 'Plans table does not exist';
+      } else {
+        const plansResult = await db.query('SELECT COUNT(*) as count FROM plans WHERE is_active = 1');
+        plansInfo = `Found ${plansResult.rows[0].count} active plans`;
+      }
+      
+      // Check users table
+      const userTableResult = await db.query(`
+        SELECT table_name FROM information_schema.tables 
+        WHERE table_name = 'users'
+      `);
+      
+      const userTableExists = userTableResult.rows.length > 0;
+      
+      return c.json({
+        success: true,
+        message: 'Database connection successful',
+        plansTableExists: result.rows.length > 0,
+        userTableExists: userTableExists,
+        plansInfo: plansInfo
+      });
+    } else {
+      return c.json({ 
+        success: false, 
+        message: 'PostgreSQL database not available' 
+      }, 500);
+    }
+  } catch (error: any) {
+    console.error('Database test error:', error);
+    return c.json({ 
+      success: false, 
+      message: 'Database test failed: ' + error.message
+    }, 500);
+  }
+})
+
 // Simple health check route
 app.get('/api/health-check', (c) => {
   return c.json({ 

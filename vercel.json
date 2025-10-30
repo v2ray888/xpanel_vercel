@@ -15,18 +15,6 @@
   ],
   "routes": [
     {
-      "src": "/api/db-init",
-      "dest": "api/db-init.ts"
-    },
-    {
-      "src": "/api/db-test",
-      "dest": "api/db-test.ts"
-    },
-    {
-      "src": "/api/env-test",
-      "dest": "api/env-test.ts"
-    },
-    {
       "src": "/api/(.*)",
       "dest": "api/index.ts"
     },
