@@ -1391,7 +1391,20 @@ app.get('/api/health-check', (c) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     service: 'xpanel-api',
-    version: '1.0.0'
+    version: '1.0.0',
+    databaseUrl: !!c.env.DATABASE_URL,
+    jwtSecret: !!c.env.JWT_SECRET
+  })
+})
+
+// Environment variables test route
+app.get('/api/test-env', (c) => {
+  return c.json({ 
+    success: true,
+    databaseUrl: c.env.DATABASE_URL ? 'Set' : 'Not set',
+    jwtSecret: c.env.JWT_SECRET ? 'Set' : 'Not set',
+    hasDatabaseUrl: !!c.env.DATABASE_URL,
+    hasJwtSecret: !!c.env.JWT_SECRET
   })
 })
 
