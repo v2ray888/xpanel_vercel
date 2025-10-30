@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
-import { jwt, sign } from 'hono/jwt'
-import { HTTPException } from 'hono/http-exception'
+import { jwt } from 'hono/jwt'
 import { z } from 'zod'
 import { adminRoutes } from './api/routes/admin'
 import { userRoutes } from './api/routes/users'
@@ -16,13 +15,13 @@ import { referralRoutes } from './api/routes/referrals'
 // import { referralAdminRoutes } from './api/admin/referrals'
 import { settingsAdminRoutes } from './api/admin/settings'
 // Import Cloudflare Pages Functions
-import { onRequestPost as loginHandler, onRequestOptions as loginOptionsHandler } from './api/auth/login'
+import { onRequestPost as loginHandler } from './api/auth/login'
 import { onRequestPost as registerHandler } from './api/auth/register'
 import { onRequestPost as adminLoginHandler } from './api/auth/admin-login'
-import { onRequestGet as meHandler, onRequestOptions as meOptionsHandler } from './api/auth/me'
-import { onRequestGet as plansHandler, onRequestOptions as plansOptionsHandler } from './api/plans'
-import { onRequestGet as dashboardHandler, onRequestOptions as dashboardOptionsHandler } from './api/user/dashboard'
-import { onRequestGet as userOrdersHandler, onRequestOptions as userOrdersOptionsHandler } from './api/user/orders'
+import { onRequestGet as meHandler } from './api/auth/me'
+import { onRequestGet as plansHandler } from './api/plans'
+import { onRequestGet as dashboardHandler } from './api/user/dashboard'
+import { onRequestGet as userOrdersHandler } from './api/user/orders'
 import { onRequestGet as userProfileHandler, onRequestPut as userProfilePutHandler } from './api/user/profile'
 import { onRequestGet as userSubscriptionHandler } from './api/user/subscription'
 import { onRequestGet as userSubscriptionLinksHandler } from './api/user/subscription-links'
@@ -44,7 +43,6 @@ import { onRequestGet as referralUsersHandler } from './api/referrals/users'
 import { onRequestGet as paymentMethodsHandler } from './api/payments/methods'
 import { onRequestGet as withdrawalsHandler, onRequestPost as withdrawalsPostHandler } from './api/withdrawals/index'
 import { onRequestGet as adminFinanceStatsHandler } from './api/admin/finance/stats'
-import { generateRedemptionCode } from './utils/generators'
 
 type Bindings = {
   DB: D1Database | any // Allow both D1Database and PostgreSQL database
@@ -54,13 +52,7 @@ type Bindings = {
   DATABASE_URL?: string // Add DATABASE_URL for PostgreSQL connection
 }
 
-// 从redemption.ts中复制schema定义
-const createRedemptionCodeSchema = z.object({
-  plan_id: z.number().int().positive().optional(),
-  quantity: z.number().int().positive().max(1000, '单次最多生成1000个'),
-  prefix: z.string().optional(),
-  expires_at: z.string().optional(),
-})
+
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -669,10 +661,6 @@ app.options('/api/plans', (c) => {
 })
 
 // Auth routes
-const loginSchema = z.object({
-  email: z.string().email('请输入有效的邮箱地址'),
-  password: z.string().min(1, '请输入密码'),
-})
 
 app.post('/api/auth/login', async (c) => {
   const response = await loginHandler({ request: c.req.raw, env: c.env } as any)
