@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 XPanel API测试页面</h1>
+        <p>此页面用于验证API是否正常工作</p>
+        
+        <div class="test-section">
+            <h3>健康检查测试</h3>
+            <button onclick="testHealth()">测试健康检查</button>
+            <div id="health-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>套餐数据测试</h3>
+            <button onclick="testPlans()">获取套餐数据</button>
+            <div id="plans-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>提现记录测试</h3>
+            <button onclick="testWithdrawals()">测试提现记录 (需要认证)</button>
+            <div id="withdrawals-result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testHealth() {
+            const resultDiv = document.getElementById('health-result');
+            try {
+                resultDiv.innerHTML = '<div class="status">🔄 正在测试...</div>';
+                const response = await fetch('/api/health-check');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="status success">
+                        <strong>✅ 健康检查成功</strong><br>
+                        状态: ${data.status}<br>
+                        时间: ${data.timestamp}<br>
+                        服务: ${data.service}
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 健康检查失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testPlans() {
+            const resultDiv = document.getElementById('plans-result');
+            try {
+                resultDiv.innerHTML = '<div class="status">🔄 正在获取套餐数据...</div>';
+                const response = await fetch('/api/plans');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="status success">
+                        <strong>✅ 套餐数据获取成功</strong><br>
+                        套餐数量: ${data.data.length}
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 套餐数据获取失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testWithdrawals() {
+            const resultDiv = document.getElementById('withdrawals-result');
+            try {
+                resultDiv.innerHTML = '<div class="status">🔄 正在测试提现记录...</div>';
+                
+                // 先测试OPTIONS
+                const optionsResponse = await fetch('/api/withdrawals', {
+                    method: 'OPTIONS'
+                });
+                
+                if (optionsResponse.status === 204) {
+                    resultDiv.innerHTML = '<div class="status">🔄 OPTIONS请求成功，正在测试GET请求...</div>';
+                    
+                    // 测试GET请求（使用示例token）
+                    const getResponse = await fetch('/api/withdrawals', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhZG1pbkB4cGFuZWwuY29tIiwicm9sZSI6MSwiZXhwIjoxNzU5MjA0MDE3fQ.4iJnZsZsZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQ'
+                        }
+                    });
+                    
+                    if (getResponse.status === 200) {
+                        const data = await getResponse.json();
+                        resultDiv.innerHTML = `
+                            <div class="status success">
+                                <strong>✅ 提现记录测试成功</strong><br>
+                                状态码: ${getResponse.status}
+                            </div>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="status error">
+                                <strong>❌ GET请求失败</strong><br>
+                                状态码: ${getResponse.status}
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            <strong>❌ OPTIONS请求失败</strong><br>
+                            状态码: ${optionsResponse.status}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 提现记录测试失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

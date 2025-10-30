@@ -47,11 +47,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUser(response.data.data)
             localStorage.setItem('user', JSON.stringify(response.data.data))
           }
-        } catch (error) {
-          // Token is invalid, clear storage
+        } catch (error: any) {
+          // Token is invalid or expired, clear storage
           localStorage.removeItem('auth_token')
           localStorage.removeItem('user')
           setUser(null)
+          // Redirect to login page if we were on a protected route
+          if (window.location.pathname.startsWith('/user') || window.location.pathname.startsWith('/admin')) {
+            window.location.href = '/login'
+          }
         }
       }
       setLoading(false)

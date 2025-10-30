@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete Test</title>
+</head>
+<body>
+    <h1>Delete API Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        const token = localStorage.getItem('auth_token');
+        
+        document.getElementById('result').innerHTML = `
+            <h2>Test Delete API:</h2>
+            <button onclick="testDelete(1)">Delete Group ID 1 (美国西部)</button>
+            <button onclick="testDelete(2)">Delete Group ID 2 (欧洲优化)</button>
+            <button onclick="testDelete(3)">Delete Group ID 3 (亚太专线)</button>
+            <div id="deleteResult"></div>
+        `;
+        
+        async function testDelete(groupId) {
+            const resultDiv = document.getElementById('deleteResult');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<p style="color: red;">No auth token found. Please login first.</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/edgetunnel/groups/${groupId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Delete API Response for Group ${groupId}:</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Success:</strong> ${data.success}</p>
+                    <p><strong>Message:</strong> ${data.message || 'No message'}</p>
+                    <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow: auto;">
+                        ${JSON.stringify(data, null, 2)}
+                    </pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -2,6 +2,16 @@ name = "cloudflare-pages-xpanel"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
+# Default environment (for local development)
+ENVIRONMENT = "development"
+JWT_SECRET = "a-very-simple-and-long-secret-key-for-testing"
+PAYMENT_SECRET = "ssUl$ZWvY+A_To12A;[pJA2hcG(M)[E1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "xpanel-db-new"
+database_id = "7d6a9b5a-85e0-4d35-9d48-888cd9bfccba"
+
 [env.production]
 ENVIRONMENT = "production"
 JWT_SECRET = "a-very-simple-and-long-secret-key-for-testing"

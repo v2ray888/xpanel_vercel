@@ -10,7 +10,8 @@ import {
   Menu, 
   X,
   LogOut,
-  Settings
+  Settings,
+  Link as LinkIcon
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils'
 const navigation = [
   { name: '仪表板', href: '/user/dashboard', icon: LayoutDashboard },
   { name: '订阅管理', href: '/user/subscription', icon: CreditCard },
+  { name: '订阅地址', href: '/user/subscription-address', icon: LinkIcon },
   { name: '节点信息', href: '/user/servers', icon: Server },
   { name: '推广中心', href: '/user/referral', icon: Users },
   { name: '订单记录', href: '/user/orders', icon: ShoppingBag },

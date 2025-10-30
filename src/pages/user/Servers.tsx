@@ -29,7 +29,7 @@ export default function ServersPage() {
     queryKey: ['user-servers'],
     queryFn: async () => {
       const response = await serversApi.getUserServers()
-      return response.data.data as ServerType[]
+      return response.data.data.servers as ServerType[]
     },
   })
 

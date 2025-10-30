@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订阅地址测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            font-family: monospace;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        .error {
+            color: red;
+            background-color: #ffe6e6;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            color: green;
+            background-color: #e6ffe6;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>订阅地址测试工具</h1>
+    
+    <div class="container">
+        <label for="token">订阅令牌:</label>
+        <textarea id="token" placeholder="输入订阅令牌">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInN1YnNjcmlwdGlvbklkIjoxLCJleHAiOjE3NjQzMDM4MTQsImlhdCI6MTc2MTY4MzAxNCwidHlwZSI6InN1YnNjcmlwdGlvbiJ9.Kh56RRcMJZ1_uvodUsdAA5gnOY9pMiQJW2W1_p-eDLE</textarea>
+    </div>
+    
+    <button id="fetchBtn">获取订阅内容</button>
+    <button id="decodeBtn" disabled>解码Base64内容</button>
+    
+    <div class="container">
+        <h2>响应状态:</h2>
+        <div id="status">等待请求...</div>
+    </div>
+    
+    <div class="container">
+        <h2>响应头:</h2>
+        <pre id="headers">等待请求...</pre>
+    </div>
+    
+    <div class="container">
+        <h2>原始响应内容:</h2>
+        <pre id="rawContent">等待请求...</pre>
+    </div>
+    
+    <div class="container">
+        <h2>Base64解码后内容:</h2>
+        <pre id="decodedContent">等待请求...</pre>
+    </div>
+    
+    <div id="errorContainer"></div>
+
+    <script>
+        document.getElementById('fetchBtn').addEventListener('click', async () => {
+            const token = document.getElementById('token').value.trim();
+            const statusEl = document.getElementById('status');
+            const headersEl = document.getElementById('headers');
+            const rawContentEl = document.getElementById('rawContent');
+            const decodedContentEl = document.getElementById('decodedContent');
+            const errorContainer = document.getElementById('errorContainer');
+            const decodeBtn = document.getElementById('decodeBtn');
+            
+            if (!token) {
+                showError('请输入订阅令牌');
+                return;
+            }
+            
+            // 清除之前的内容
+            statusEl.textContent = '请求中...';
+            headersEl.textContent = '请求中...';
+            rawContentEl.textContent = '请求中...';
+            decodedContentEl.textContent = '等待解码...';
+            errorContainer.innerHTML = '';
+            decodeBtn.disabled = true;
+            
+            try {
+                // 获取订阅内容
+                const response = await fetch(`http://localhost:3002/api/subscribe/${token}`);
+                
+                // 显示状态
+                statusEl.textContent = `${response.status} ${response.statusText}`;
+                statusEl.className = response.ok ? 'success' : 'error';
+                
+                // 显示响应头
+                let headersText = '';
+                for (const [key, value] of response.headers.entries()) {
+                    headersText += `${key}: ${value}\n`;
+                }
+                headersEl.textContent = headersText || '无响应头';
+                
+                // 获取响应内容
+                const content = await response.text();
+                rawContentEl.textContent = content;
+                
+                // 启用解码按钮
+                decodeBtn.disabled = false;
+                
+                // 如果响应是文本类型，尝试自动解码
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/plain')) {
+                    tryDecodeContent(content);
+                }
+            } catch (err) {
+                console.error('获取订阅内容失败:', err);
+                showError('获取订阅内容失败: ' + err.message);
+                statusEl.textContent = '请求失败';
+                statusEl.className = 'error';
+            }
+        });
+        
+        document.getElementById('decodeBtn').addEventListener('click', () => {
+            const rawContent = document.getElementById('rawContent').textContent;
+            tryDecodeContent(rawContent);
+        });
+        
+        function tryDecodeContent(content) {
+            const decodedContentEl = document.getElementById('decodedContent');
+            
+            if (!content || content === '等待请求...' || content === '请求中...') {
+                decodedContentEl.textContent = '无内容可解码';
+                return;
+            }
+            
+            try {
+                // 尝试解码base64内容
+                const decoded = atob(content);
+                decodedContentEl.textContent = decoded;
+                decodedContentEl.className = 'success';
+            } catch (decodeError) {
+                console.error('Base64解码失败:', decodeError);
+                decodedContentEl.textContent = '无法解码内容（可能不是base64格式）';
+                decodedContentEl.className = 'error';
+            }
+        }
+        
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `<div class="error">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

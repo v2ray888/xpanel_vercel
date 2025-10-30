@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,10 +12,13 @@ import {
   HardDrive,
   Smartphone
 } from 'lucide-react'
-import { adminApi } from '@/lib/api'
+import { adminApi } from '@/lib/api/admin'
+import { edgeTunnelApi } from '@/lib/api/edgetunnel'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/Select'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { Badge } from '@/components/ui/Badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Modal } from '@/components/ui/Modal'
@@ -31,6 +34,7 @@ const planSchema = z.object({
   device_limit: z.number().int().min(1, '设备数至少1台'),
   features: z.array(z.string()).optional(),
   sort_order: z.number().int().min(0).optional(),
+  edgetunnel_group_ids: z.array(z.number()).optional(), // EdgeTunnel 服务组ID数组
 })
 
 type PlanForm = z.infer<typeof planSchema>
@@ -40,6 +44,7 @@ export default function AdminPlansPage() {
   const [editingPlan, setEditingPlan] = useState<any>(null)
   const [features, setFeatures] = useState<string[]>([])
   const [newFeature, setNewFeature] = useState('')
+  const [selectedEdgeTunnelGroups, setSelectedEdgeTunnelGroups] = useState<number[]>([])
 
   const queryClient = useQueryClient()
 
@@ -47,9 +52,52 @@ export default function AdminPlansPage() {
     queryKey: ['admin-plans'],
     queryFn: async () => {
       const response = await adminApi.getPlans()
+      console.log('API Response for all plans:', response)
       return response.data.data
     },
   })
+
+  const { data: edgeTunnelGroupsData, isLoading: isEdgeTunnelGroupsLoading, error: edgeTunnelGroupsError } = useQuery({
+    queryKey: ['edge-tunnel-groups'],
+    queryFn: async () => {
+      const response = await edgeTunnelApi.getGroups()
+      console.log('EdgeTunnel groups API response:', response)
+      
+      // 添加调试信息
+      if (response && response.data) {
+        console.log('EdgeTunnel groups data structure:', response.data)
+        if (response.data.groups) {
+          console.log('EdgeTunnel groups array:', response.data.groups)
+        } else if (Array.isArray(response.data)) {
+          console.log('EdgeTunnel groups is array:', response.data)
+        }
+      }
+      
+      return response.data
+    },
+  })
+
+  // 从响应数据中提取服务组数组
+  let edgeTunnelGroups = []
+  if (edgeTunnelGroupsData && typeof edgeTunnelGroupsData === 'object' && !Array.isArray(edgeTunnelGroupsData)) {
+    // 处理 { success: true, data: { groups: [...] } } 格式
+    if (edgeTunnelGroupsData.data && edgeTunnelGroupsData.data.groups) {
+      edgeTunnelGroups = edgeTunnelGroupsData.data.groups
+    } else if (edgeTunnelGroupsData.groups) {
+      // 处理 { groups: [...] } 格式
+      edgeTunnelGroups = edgeTunnelGroupsData.groups
+    }
+  } else if (Array.isArray(edgeTunnelGroupsData)) {
+    // 处理直接数组格式
+    edgeTunnelGroups = edgeTunnelGroupsData
+  }
+  
+  // 添加调试日志
+  console.log('EdgeTunnel groups data:', edgeTunnelGroupsData)
+  console.log('EdgeTunnel groups array (processed):', edgeTunnelGroups)
+  console.log('Is loading EdgeTunnel groups:', isEdgeTunnelGroupsLoading)
+  console.log('EdgeTunnel groups error:', edgeTunnelGroupsError)
+  console.log('Selected EdgeTunnel groups:', selectedEdgeTunnelGroups)
 
   const form = useForm<PlanForm>({
     resolver: zodResolver(planSchema),
@@ -62,6 +110,7 @@ export default function AdminPlansPage() {
       device_limit: 3,
       features: [],
       sort_order: 0,
+      edgetunnel_group_ids: [],
     },
   })
 
@@ -70,6 +119,7 @@ export default function AdminPlansPage() {
       const response = await adminApi.createPlan({
         ...data,
         features: features,
+        edgetunnel_group_ids: selectedEdgeTunnelGroups,
       })
       return response.data
     },
@@ -89,6 +139,7 @@ export default function AdminPlansPage() {
       const response = await adminApi.updatePlan(data.id, {
         ...data,
         features: features,
+        edgetunnel_group_ids: selectedEdgeTunnelGroups,
       })
       return response.data
     },
@@ -121,6 +172,7 @@ export default function AdminPlansPage() {
   const handleCreatePlan = () => {
     setEditingPlan(null)
     setFeatures([])
+    setSelectedEdgeTunnelGroups([])
     form.reset()
     setShowPlanModal(true)
   }
@@ -128,6 +180,56 @@ export default function AdminPlansPage() {
   const handleEditPlan = (plan: any) => {
     setEditingPlan(plan)
     setFeatures(plan.features || [])
+    // 设置选中的 EdgeTunnel 服务组
+    console.log('Editing plan:', plan)
+    console.log('All plan keys:', Object.keys(plan))
+    
+    // 检查所有可能的字段
+    console.log('Plan edgetunnel_group_ids:', plan.edgetunnel_group_ids)
+    console.log('Plan edgetunnel_group_id:', plan.edgetunnel_group_id)
+    
+    // 处理 EdgeTunnel 服务组 ID
+    let groupIds: number[] = []
+    if (plan.edgetunnel_group_ids !== undefined && plan.edgetunnel_group_ids !== null) {
+      // 如果是数组格式
+      if (Array.isArray(plan.edgetunnel_group_ids)) {
+        groupIds = plan.edgetunnel_group_ids
+      } 
+      // 如果是字符串格式（JSON）
+      else if (typeof plan.edgetunnel_group_ids === 'string') {
+        try {
+          const parsed = JSON.parse(plan.edgetunnel_group_ids)
+          groupIds = Array.isArray(parsed) ? parsed : [parsed]
+        } catch (e) {
+          console.error('Failed to parse edgetunnel_group_ids:', e)
+          // 如果解析失败，尝试直接转换为数字
+          const singleId = parseInt(plan.edgetunnel_group_ids, 10)
+          if (!isNaN(singleId)) {
+            groupIds = [singleId]
+          }
+        }
+      }
+      // 如果是数字格式（单个ID）
+      else if (typeof plan.edgetunnel_group_ids === 'number') {
+        groupIds = [plan.edgetunnel_group_ids]
+      }
+    } 
+    // 兼容旧的 edgetunnel_group_id 字段
+    else if (plan.edgetunnel_group_id) {
+      groupIds = [plan.edgetunnel_group_id]
+    }
+    
+    // 确保所有 ID 都是数字类型
+    groupIds = groupIds.map((id: any) => {
+      if (typeof id === 'string') {
+        return parseInt(id, 10)
+      }
+      return id
+    }).filter((id: any) => !isNaN(id))
+    
+    console.log('Parsed group IDs to select:', groupIds)
+    setSelectedEdgeTunnelGroups(groupIds)
+    
     form.reset({
       name: plan.name,
       description: plan.description || '',
@@ -136,7 +238,11 @@ export default function AdminPlansPage() {
       traffic_gb: plan.traffic_gb,
       device_limit: plan.device_limit,
       sort_order: plan.sort_order || 0,
+      edgetunnel_group_ids: groupIds,
     })
+    
+    // 确保选中的 EdgeTunnel 服务组状态正确设置
+    setSelectedEdgeTunnelGroups(groupIds)
     setShowPlanModal(true)
   }
 
@@ -151,6 +257,7 @@ export default function AdminPlansPage() {
     setEditingPlan(null)
     setFeatures([])
     setNewFeature('')
+    setSelectedEdgeTunnelGroups([])
     form.reset()
   }
 
@@ -165,12 +272,36 @@ export default function AdminPlansPage() {
     setFeatures(features.filter((_, i) => i !== index))
   }
 
+  const handleEdgeTunnelGroupChange = (groupId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedEdgeTunnelGroups(prev => [...prev, groupId])
+    } else {
+      setSelectedEdgeTunnelGroups(prev => prev.filter(id => id !== groupId))
+    }
+  }
+
   const onSubmit = (data: PlanForm) => {
     if (editingPlan) {
       updatePlanMutation.mutate({ ...data, id: editingPlan.id })
     } else {
       createPlanMutation.mutate(data)
     }
+  }
+
+  // 获取 EdgeTunnel 服务组名称
+  const getEdgeTunnelGroupName = (groupId: number) => {
+    if (!edgeTunnelGroups) return ''
+    const group = edgeTunnelGroups.find((g: any) => g.id === groupId)
+    return group ? group.name : ''
+  }
+
+  // 获取选中的 EdgeTunnel 服务组名称列表
+  const getSelectedEdgeTunnelGroupNames = (groupIds: number[]) => {
+    if (!edgeTunnelGroups || !groupIds) return []
+    return groupIds.map(id => {
+      const group = edgeTunnelGroups.find((g: any) => g.id === id)
+      return group ? group.name : ''
+    }).filter(name => name !== '')
   }
 
   return (
@@ -246,6 +377,16 @@ export default function AdminPlansPage() {
                     <span>{plan.device_limit} 台设备</span>
                   </div>
                 </div>
+
+                {/* EdgeTunnel 服务组 */}
+                {plan.edgetunnel_group_ids && plan.edgetunnel_group_ids.length > 0 && (
+                  <div className="pt-2 border-t">
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">EdgeTunnel:</span>{' '}
+                      {getSelectedEdgeTunnelGroupNames(plan.edgetunnel_group_ids).join(', ')}
+                    </div>
+                  </div>
+                )}
 
                 {/* Custom Features */}
                 {plan.features && Array.isArray(plan.features) && plan.features.length > 0 && (
@@ -365,6 +506,41 @@ export default function AdminPlansPage() {
               placeholder="请输入套餐描述"
               error={form.formState.errors.description?.message}
             />
+          </div>
+
+          {/* EdgeTunnel 服务组选择 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              EdgeTunnel 服务组 (可选)
+            </label>
+            {isEdgeTunnelGroupsLoading ? (
+              <div className="text-sm text-gray-500">加载中...</div>
+            ) : edgeTunnelGroupsError ? (
+              <div className="text-sm text-red-500">加载失败: {edgeTunnelGroupsError.message}</div>
+            ) : (
+              <div className="border rounded-md p-3 max-h-40 overflow-y-auto">
+                {edgeTunnelGroups.length > 0 ? (
+                  edgeTunnelGroups.map((group: any) => {
+                    const isChecked = selectedEdgeTunnelGroups.includes(group.id);
+                    return (
+                      <div key={group.id} className="py-2">
+                        <Checkbox
+                          id={`group-${group.id}`}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => handleEdgeTunnelGroupChange(group.id, checked as boolean)}
+                          label={group.name}
+                        />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-sm text-gray-500">暂无可用的服务组</div>
+                )}
+              </div>
+            )}
+            <p className="mt-1 text-sm text-gray-500">
+              选择后，购买此套餐的用户将自动分配到选中的 EdgeTunnel 服务组
+            </p>
           </div>
 
           {/* Features */}

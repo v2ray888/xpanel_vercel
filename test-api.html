@@ -4,40 +4,24 @@
     <title>API Test</title>
 </head>
 <body>
-    <h1>API Test</h1>
-    <button onclick="testLogin()">Test Login</button>
+    <h1>EdgeTunnel API Test</h1>
+    <button onclick="testApi()">Test EdgeTunnel Group Assignments</button>
     <div id="result"></div>
 
     <script>
-        async function testLogin() {
+        async function testApi() {
             const resultDiv = document.getElementById('result');
-            
             try {
-                const response = await fetch('http://localhost:3000/api/auth/login', {
-                    method: 'POST',
+                const response = await fetch('http://127.0.0.1:8788/api/admin/edgetunnel/users/group/2', {
+                    method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: 'admin@xpanel.com',
-                        password: 'admin123'
-                    })
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOjEsImV4cCI6MTczMDA0NzIzN30.5_s3r5J5Z2Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z',
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 const data = await response.json();
                 resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-                
-                if (data.success && data.data.token) {
-                    // Test servers API
-                    const serversResponse = await fetch('http://localhost:3000/api/user/servers', {
-                        headers: {
-                            'Authorization': `Bearer ${data.data.token}`
-                        }
-                    });
-                    
-                    const serversData = await serversResponse.json();
-                    resultDiv.innerHTML += '<h2>Servers API Response:</h2><pre>' + JSON.stringify(serversData, null, 2) + '</pre>';
-                }
             } catch (error) {
                 resultDiv.innerHTML = '<p>Error: ' + error.message + '</p>';
             }

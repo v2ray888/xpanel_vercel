@@ -1,115 +1,71 @@
 // functions/api/withdrawals/admin/[id].ts
+import { getDB, getJwtPayload } from '../../../utils/db';
 
 // CORS preflight response
-export async function onRequestOptions() {
+export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, {
-    status: 200,
+    status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'PUT, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
     },
-  })
-}
+  });
+};
 
-export async function onRequestPut(context: any) {
-  const { env, request, params } = context
-  
+export const onRequestPut: PagesFunction<{ DB: D1Database; JWT_SECRET: string }, 'id'> = async (context) => {
+  const { request, env, params } = context;
   try {
-    // Check admin authentication
-    const authHeader = request.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return Response.json({ success: false, message: '未授权访问' }, { status: 401 })
+    const payload = await getJwtPayload(request, env.JWT_SECRET);
+    if (payload.role !== 1) {
+      return new Response(JSON.stringify({ success: false, message: '权限不足' }), { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
 
-    const token = authHeader.substring(7)
-    
-    let decoded: any
-    try {
-      // Simple JWT decode for demo (in production, use proper JWT verification)
-      const payload = token.split('.')[1]
-      const decodedPayload = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
-      decoded = JSON.parse(decodedPayload)
-      
-      // Check if token is expired
-      if (decoded.exp && decoded.exp < Date.now() / 1000) {
-        throw new Error('Token expired')
-      }
-    } catch (error) {
-      return Response.json({ success: false, message: '无效的访问令牌' }, { status: 401 })
+    const id = params.id;
+    const body = await request.json<{ status: number; admin_note?: string }>();
+    const { status, admin_note } = body;
+    const db = getDB(env);
+
+    if (![1, 2].includes(status)) {
+      return new Response(JSON.stringify({ success: false, message: '无效的状态' }), { status: 400, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
 
-    // Check if user is admin
-    const user = await env.DB.prepare('SELECT * FROM users WHERE id = ? AND role = "admin"')
-      .bind(decoded.userId)
-      .first()
-
-    if (!user) {
-      return Response.json({ success: false, message: '权限不足' }, { status: 403 })
-    }
-
-    const withdrawalId = parseInt(params.id)
-    const { status, admin_note } = await request.json()
-
-    // Validate input
-    if (![0, 1, 2].includes(status)) {
-      return Response.json({
-        success: false,
-        message: '无效的状态值'
-      }, { status: 400 })
-    }
-
-    // Get withdrawal record
-    const withdrawal = await env.DB.prepare('SELECT * FROM withdrawals WHERE id = ?')
-      .bind(withdrawalId)
-      .first()
+    const withdrawal = await db.prepare(
+      'SELECT * FROM withdrawals WHERE id = ?'
+    ).bind(id).first<{ id: number; user_id: number; amount: number; status: number }>();
 
     if (!withdrawal) {
-      return Response.json({
-        success: false,
-        message: '提现记录不存在'
-      }, { status: 404 })
+      return new Response(JSON.stringify({ success: false, message: '提现记录不存在' }), { status: 404, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
 
-    // Update withdrawal status
-    await env.DB.prepare(`
-      UPDATE withdrawals 
+    if (withdrawal.status !== 0) {
+      return new Response(JSON.stringify({ success: false, message: '该提现请求已处理' }), { status: 400, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+    }
+
+    await db.prepare(`
+      UPDATE withdrawals
       SET status = ?, admin_note = ?, processed_at = datetime('now')
       WHERE id = ?
-    `).bind(status, admin_note || null, withdrawalId).run()
+    `).bind(status, admin_note || null, id).run();
 
-    // If rejected, return commission to user
-    if (status === 2 && withdrawal.status === 0) {
-      await env.DB.prepare(`
-        UPDATE users 
-        SET commission_balance = commission_balance + ?
-        WHERE id = ?
-      `).bind(withdrawal.amount, withdrawal.user_id).run()
+    if (status === 2) { // If rejected
+      await db.prepare(
+        'UPDATE users SET commission_balance = commission_balance + ? WHERE id = ?'
+      ).bind(withdrawal.amount, withdrawal.user_id).run();
     }
 
-    return Response.json({
+    return new Response(JSON.stringify({
       success: true,
-      message: '提现状态更新成功'
-    }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      }
-    })
+      message: status === 1 ? '提现已批准' : '提现已拒绝',
+    }), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 
-  } catch (error) {
-    console.error('Process withdrawal error:', error)
-    return Response.json({
-      success: false,
-      message: '处理提现请求失败'
-    }, { 
-      status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      }
-    })
+  } catch (error: any) {
+    console.error('Process withdrawal error:', error);
+    const status = error.message.includes('token') ? 401 : 500;
+    return new Response(JSON.stringify({ success: false, message: '处理提现请求失败: ' + error.message }), {
+      status: status,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
   }
-}
+};

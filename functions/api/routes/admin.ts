@@ -7,88 +7,6 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-// Get admin dashboard stats
-app.get('/stats', async (c) => {
-  try {
-    // Get total users
-    const totalUsersResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM users'
-    ).first()
-
-    // Get new users today
-    const newUsersTodayResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM users WHERE DATE(created_at) = DATE("now")'
-    ).first()
-
-    // Get total revenue
-    const totalRevenueResult = await c.env.DB.prepare(
-      'SELECT COALESCE(SUM(final_amount), 0) as total FROM orders WHERE status = 1'
-    ).first()
-
-    // Get today revenue
-    const todayRevenueResult = await c.env.DB.prepare(
-      'SELECT COALESCE(SUM(final_amount), 0) as total FROM orders WHERE status = 1 AND DATE(created_at) = DATE("now")'
-    ).first()
-
-    // Get total orders
-    const totalOrdersResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM orders'
-    ).first()
-
-    // Get today orders
-    const todayOrdersResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = DATE("now")'
-    ).first()
-
-    // Get server stats
-    const activeServersResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM servers WHERE is_active = 1'
-    ).first()
-
-    const totalServersResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM servers'
-    ).first()
-
-    // Get redemption code stats
-    const totalRedemptionCodesResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM redemption_codes'
-    ).first()
-
-    const usedRedemptionCodesResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM redemption_codes WHERE status = 1'
-    ).first()
-
-    // Get referral stats
-    const totalReferralsResult = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM users WHERE referrer_id IS NOT NULL'
-    ).first()
-
-    const totalCommissionsResult = await c.env.DB.prepare(
-      'SELECT COALESCE(SUM(commission_amount), 0) as total FROM referral_commissions WHERE status = 1'
-    ).first()
-
-    return c.json({
-      success: true,
-      data: {
-        totalUsers: (totalUsersResult?.count as number) || 0,
-        newUsersToday: (newUsersTodayResult?.count as number) || 0,
-        totalRevenue: parseFloat((totalRevenueResult?.total as string) || '0'),
-        todayRevenue: parseFloat((todayRevenueResult?.total as string) || '0'),
-        totalOrders: (totalOrdersResult?.count as number) || 0,
-        todayOrders: (todayOrdersResult?.count as number) || 0,
-        activeServers: (activeServersResult?.count as number) || 0,
-        totalServers: (totalServersResult?.count as number) || 0,
-        totalRedemptionCodes: (totalRedemptionCodesResult?.count as number) || 0,
-        usedRedemptionCodes: (usedRedemptionCodesResult?.count as number) || 0,
-        totalReferrals: (totalReferralsResult?.count as number) || 0,
-        totalCommissions: parseFloat((totalCommissionsResult?.total as string) || '0'),
-      },
-    })
-  } catch (error: any) {
-    console.error('Get admin stats error:', error)
-    throw new HTTPException(500, { message: '获取统计数据失败: ' + (error.message || '未知错误') })
-  }
-})
 
 // Get recent orders
 app.get('/recent-orders', async (c) => {
@@ -325,29 +243,51 @@ app.post('/servers', async (c) => {
       throw new HTTPException(400, { message: '服务器名称、地址、端口和协议是必填项' })
     }
 
+    // Ensure all values have proper defaults
+    const serverData = {
+      name,
+      host,
+      port,
+      protocol,
+      method: method || null,
+      password: password || null,
+      uuid: uuid || null,
+      path: path || null,
+      country: country || null,
+      city: city || null,
+      flag_emoji: flag_emoji || null,
+      load_balance: load_balance !== undefined ? load_balance : 0,
+      max_users: max_users !== undefined ? max_users : 1000,
+      device_limit: device_limit !== undefined ? device_limit : 3,
+      is_active: is_active !== undefined ? is_active : 1,
+      sort_order: sort_order !== undefined ? sort_order : 0,
+      created_at: new Date().toISOString()
+    };
+
     const result = await c.env.DB.prepare(`
       INSERT INTO servers (
         name, host, port, protocol, method, password, uuid, path,
         country, city, flag_emoji, load_balance, max_users, device_limit,
         is_active, sort_order, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      name,
-      host,
-      port,
-      protocol,
-      method || null,
-      password || null,
-      uuid || null,
-      path || null,
-      country || null,
-      city || null,
-      flag_emoji || null,
-      load_balance || 0,
-      max_users || 1000,
-      device_limit || 3,
-      is_active !== undefined ? is_active : 1,
-      sort_order || 0
+      serverData.name,
+      serverData.host,
+      serverData.port,
+      serverData.protocol,
+      serverData.method,
+      serverData.password,
+      serverData.uuid,
+      serverData.path,
+      serverData.country,
+      serverData.city,
+      serverData.flag_emoji,
+      serverData.load_balance,
+      serverData.max_users,
+      serverData.device_limit,
+      serverData.is_active,
+      serverData.sort_order,
+      serverData.created_at
     ).run()
 
     if (!result.success) {
@@ -403,30 +343,52 @@ app.put('/servers/:id', async (c) => {
       throw new HTTPException(400, { message: '服务器名称、地址、端口和协议是必填项' })
     }
 
+    // Ensure all values have proper defaults
+    const serverData = {
+      name,
+      host,
+      port,
+      protocol,
+      method: method || null,
+      password: password || null,
+      uuid: uuid || null,
+      path: path || null,
+      country: country || null,
+      city: city || null,
+      flag_emoji: flag_emoji || null,
+      load_balance: load_balance !== undefined ? load_balance : 0,
+      max_users: max_users !== undefined ? max_users : 1000,
+      device_limit: device_limit !== undefined ? device_limit : 3,
+      is_active: is_active !== undefined ? is_active : 1,
+      sort_order: sort_order !== undefined ? sort_order : 0,
+      updated_at: new Date().toISOString()
+    };
+
     const result = await c.env.DB.prepare(`
       UPDATE servers SET
         name = ?, host = ?, port = ?, protocol = ?, method = ?, password = ?,
         uuid = ?, path = ?, country = ?, city = ?, flag_emoji = ?,
         load_balance = ?, max_users = ?, device_limit = ?, is_active = ?,
-        sort_order = ?, updated_at = datetime('now')
+        sort_order = ?, updated_at = ?
       WHERE id = ?
     `).bind(
-      name,
-      host,
-      port,
-      protocol,
-      method || null,
-      password || null,
-      uuid || null,
-      path || null,
-      country || null,
-      city || null,
-      flag_emoji || null,
-      load_balance !== undefined ? load_balance : 0,
-      max_users !== undefined ? max_users : 1000,
-      device_limit !== undefined ? device_limit : 3,
-      is_active !== undefined ? is_active : 1,
-      sort_order !== undefined ? sort_order : 0,
+      serverData.name,
+      serverData.host,
+      serverData.port,
+      serverData.protocol,
+      serverData.method,
+      serverData.password,
+      serverData.uuid,
+      serverData.path,
+      serverData.country,
+      serverData.city,
+      serverData.flag_emoji,
+      serverData.load_balance,
+      serverData.max_users,
+      serverData.device_limit,
+      serverData.is_active,
+      serverData.sort_order,
+      serverData.updated_at,
       id
     ).run()
 
@@ -555,7 +517,7 @@ app.get('/plans', async (c) => {
   try {
     const plans = await c.env.DB.prepare(`
       SELECT id, name, description, price, original_price, duration_days, traffic_gb, device_limit, 
-             features, sort_order, is_popular, is_active as status, created_at
+             features, sort_order, is_popular, is_active as status, edgetunnel_group_ids, created_at
       FROM plans 
       ORDER BY sort_order ASC, price ASC
     `).all()
@@ -565,6 +527,8 @@ app.get('/plans', async (c) => {
       data: plans.results.map((plan: any) => ({
         ...plan,
         features: plan.features ? JSON.parse(plan.features as string) : [],
+        // 解析 edgetunnel_group_ids
+        edgetunnel_group_ids: plan.edgetunnel_group_ids ? JSON.parse(plan.edgetunnel_group_ids as string) : []
       })),
     })
   } catch (error) {
@@ -589,7 +553,8 @@ app.post('/plans', async (c) => {
       features,
       sort_order,
       is_popular,
-      status
+      status,
+      edgetunnel_group_ids  // 添加 EdgeTunnel 服务组 ID
     } = body
 
     // Simple validation
@@ -598,12 +563,16 @@ app.post('/plans', async (c) => {
     }
 
     const featuresJson = features ? JSON.stringify(features) : '[]'
+    // 处理 EdgeTunnel 服务组 IDs
+    const edgetunnelGroupIdsJson = edgetunnel_group_ids && Array.isArray(edgetunnel_group_ids) && edgetunnel_group_ids.length > 0 
+      ? JSON.stringify(edgetunnel_group_ids) 
+      : null
 
     const result = await c.env.DB.prepare(`
       INSERT INTO plans (
         name, description, price, original_price, duration_days, traffic_gb, device_limit,
-        features, sort_order, is_popular, is_active, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        features, sort_order, is_popular, is_active, edgetunnel_group_ids, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `).bind(
       name,
       description || '',
@@ -615,7 +584,8 @@ app.post('/plans', async (c) => {
       featuresJson,
       sort_order || 0,
       is_popular ? 1 : 0,
-      status !== undefined ? status : 1
+      status !== undefined ? status : 1,
+      edgetunnelGroupIdsJson  // 添加 EdgeTunnel 服务组 ID
     ).run()
 
     if (!result.success) {
@@ -625,7 +595,7 @@ app.post('/plans', async (c) => {
     // Get created plan
     const plan = await c.env.DB.prepare(`
       SELECT id, name, description, price, original_price, duration_days, traffic_gb, device_limit, 
-             features, sort_order, is_popular, is_active as status, created_at
+             features, sort_order, is_popular, is_active as status, edgetunnel_group_ids, created_at
       FROM plans 
       WHERE id = ?
     `).bind(result.meta.last_row_id).first()
@@ -640,6 +610,8 @@ app.post('/plans', async (c) => {
       data: {
         ...plan,
         features: plan.features ? JSON.parse(plan.features as string) : [],
+        // 解析 edgetunnel_group_ids
+        edgetunnel_group_ids: plan.edgetunnel_group_ids ? JSON.parse(plan.edgetunnel_group_ids as string) : []
       },
     })
   } catch (error: any) {
@@ -668,7 +640,8 @@ app.put('/plans/:id', async (c) => {
       features,
       sort_order,
       is_popular,
-      status
+      status,
+      edgetunnel_group_ids  // 添加 EdgeTunnel 服务组 ID
     } = body
 
     // Simple validation
@@ -677,12 +650,16 @@ app.put('/plans/:id', async (c) => {
     }
 
     const featuresJson = features ? JSON.stringify(features) : '[]'
+    // 处理 EdgeTunnel 服务组 IDs
+    const edgetunnelGroupIdsJson = edgetunnel_group_ids && Array.isArray(edgetunnel_group_ids) && edgetunnel_group_ids.length > 0 
+      ? JSON.stringify(edgetunnel_group_ids) 
+      : null
 
     const result = await c.env.DB.prepare(`
       UPDATE plans SET
         name = ?, description = ?, price = ?, original_price = ?, duration_days = ?,
         traffic_gb = ?, device_limit = ?, features = ?, sort_order = ?,
-        is_popular = ?, is_active = ?, updated_at = datetime('now')
+        is_popular = ?, is_active = ?, edgetunnel_group_ids = ?, updated_at = datetime('now')
       WHERE id = ?
     `).bind(
       name,
@@ -696,6 +673,7 @@ app.put('/plans/:id', async (c) => {
       sort_order !== undefined ? sort_order : 0,
       is_popular ? 1 : 0,
       status !== undefined ? status : 1,
+      edgetunnelGroupIdsJson,  // 添加 EdgeTunnel 服务组 ID
       id
     ).run()
 
@@ -706,7 +684,7 @@ app.put('/plans/:id', async (c) => {
     // Get updated plan
     const plan = await c.env.DB.prepare(`
       SELECT id, name, description, price, original_price, duration_days, traffic_gb, device_limit, 
-             features, sort_order, is_popular, is_active as status, created_at
+             features, sort_order, is_popular, is_active as status, edgetunnel_group_ids, created_at
       FROM plans 
       WHERE id = ?
     `).bind(id).first()
@@ -721,6 +699,8 @@ app.put('/plans/:id', async (c) => {
       data: {
         ...plan,
         features: plan.features ? JSON.parse(plan.features as string) : [],
+        // 解析 edgetunnel_group_ids
+        edgetunnel_group_ids: plan.edgetunnel_group_ids ? JSON.parse(plan.edgetunnel_group_ids as string) : []
       },
     })
   } catch (error: any) {
@@ -764,6 +744,54 @@ app.delete('/plans/:id', async (c) => {
     }
     console.error('Delete plan error:', error)
     throw new HTTPException(500, { message: '删除套餐失败: ' + error.message })
+  }
+})
+
+// Get plan by ID (Admin)
+app.get('/plans/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    
+    const plan = await c.env.DB.prepare(`
+      SELECT * FROM plans WHERE id = ?
+    `).bind(id).first()
+
+    if (!plan) {
+      throw new HTTPException(404, { message: '套餐不存在' })
+    }
+
+    // Parse features if it's a JSON string
+    if (plan.features && typeof plan.features === 'string') {
+      try {
+        plan.features = JSON.parse(plan.features);
+      } catch (e) {
+        plan.features = [];
+      }
+    }
+    
+    // 解析 edgetunnel_group_ids
+    if (plan.edgetunnel_group_ids && typeof plan.edgetunnel_group_ids === 'string') {
+      try {
+        plan.edgetunnel_group_ids = JSON.parse(plan.edgetunnel_group_ids);
+      } catch (e) {
+        plan.edgetunnel_group_ids = [];
+      }
+    } else if (plan.edgetunnel_group_ids === null || plan.edgetunnel_group_ids === undefined) {
+      plan.edgetunnel_group_ids = [];
+    } else if (typeof plan.edgetunnel_group_ids === 'string' && plan.edgetunnel_group_ids === '') {
+      plan.edgetunnel_group_ids = [];
+    }
+
+    return c.json({
+      success: true,
+      data: plan,
+    })
+  } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error
+    }
+    console.error('Get plan by id error:', error)
+    throw new HTTPException(500, { message: '获取套餐失败' })
   }
 })
 

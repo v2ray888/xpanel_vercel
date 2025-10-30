@@ -95,20 +95,20 @@ export default function AdminReferralsPage() {
     },
   })
 
-  const commissions = commissionsData?.data || []
+  const commissions = commissionsData?.data?.data || []
   const total = commissionsData?.data?.total || 0
   const totalPages = Math.ceil((total || 0) / limit)
 
   // Calculate commission statistics
-  const pendingCommission = commissionsData?.data?.reduce((sum: number, item: any) => {
+  const pendingCommission = commissions.reduce((sum: number, item: any) => {
     return item.status === 0 ? sum + item.commission_amount : sum
   }, 0) || 0
   
-  const settledCommission = commissionsData?.data?.reduce((sum: number, item: any) => {
+  const settledCommission = commissions.reduce((sum: number, item: any) => {
     return item.status === 1 ? sum + item.commission_amount : sum
   }, 0) || 0
   
-  const withdrawnCommission = commissionsData?.data?.reduce((sum: number, item: any) => {
+  const withdrawnCommission = commissions.reduce((sum: number, item: any) => {
     return item.status === 2 ? sum + item.commission_amount : sum
   }, 0) || 0
 
@@ -154,7 +154,7 @@ export default function AdminReferralsPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">总推荐用户</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {commissionsData?.data?.length || 0}
+                  {commissions.length || 0}
                 </p>
               </div>
             </div>

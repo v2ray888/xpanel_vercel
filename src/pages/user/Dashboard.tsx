@@ -18,17 +18,79 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatCurrency, formatBytes, formatDate, calculateDaysRemaining, calculateUsagePercentage } from '@/lib/utils'
-import { UserStats, Order, User } from '@/types'
+import { Order } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
+
+// 定义仪表板数据类型
+interface DashboardData {
+  user: {
+    id: number
+    email: string
+    username: string
+    phone: string
+    avatar_url: string
+    balance: number
+    commission_balance: number
+    referral_code: string
+    last_login_at: string
+    created_at: string
+  }
+  subscription: {
+    id: number
+    plan_name: string
+    start_date: string
+    end_date: string
+    traffic_used: number
+    traffic_total: number
+    device_limit: number
+    duration_days: number
+    traffic_gb: number
+  } | null
+  servers: Array<{
+    id: number
+    name: string
+    host: string
+    port: number
+    protocol: string
+    country: string
+    city: string
+    flag_emoji: string
+    device_limit: number
+    current_users: number
+    max_users: number
+    load_balance: number
+  }>
+  recent_orders: Array<{
+    id: number
+    order_no: string
+    amount: number
+    final_amount: number
+    status: number
+    payment_method: string
+    paid_at: string
+    created_at: string
+    plan_name: string
+  }>
+  traffic_usage: {
+    upload: number
+    download: number
+    total: number
+  }
+  referral_stats: {
+    total_referrals: number
+    total_commission: number
+    pending_commission: number
+  }
+}
 
 export default function UserDashboard() {
   const { user } = useAuth()
   
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
-    queryKey: ['user-stats'],
+  const { data: dashboardData, isLoading: statsLoading, error: statsError } = useQuery({
+    queryKey: ['user-dashboard'],
     queryFn: async () => {
       const response = await usersApi.getStats()
-      return response.data.data as UserStats
+      return response.data.data as DashboardData
     },
     retry: 1,
   })
@@ -61,7 +123,7 @@ export default function UserDashboard() {
     )
   }
 
-  const subscription = stats?.subscription
+  const subscription = dashboardData?.subscription
   const daysRemaining = subscription ? calculateDaysRemaining(subscription.end_date) : 0
   const usagePercentage = subscription ? calculateUsagePercentage(subscription.traffic_used, subscription.traffic_total) : 0
 
@@ -102,7 +164,7 @@ export default function UserDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">当前订阅</p>
                 <p className="text-lg font-bold text-gray-900 truncate">
-                  {subscription?.plan?.name || '无订阅'}
+                  {subscription?.plan_name || '无订阅'}
                 </p>
               </div>
             </div>
@@ -118,7 +180,7 @@ export default function UserDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">总消费</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {formatCurrency(stats?.totalSpent || 0)}
+                  {formatCurrency(dashboardData?.referral_stats?.total_commission || 0)}
                 </p>
               </div>
             </div>
@@ -134,7 +196,7 @@ export default function UserDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">推荐用户</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {stats?.referralCount || 0}
+                  {dashboardData?.referral_stats?.total_referrals || 0}
                 </p>
               </div>
             </div>
@@ -150,7 +212,7 @@ export default function UserDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">佣金收益</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {formatCurrency(stats?.commissionEarned || 0)}
+                  {formatCurrency(dashboardData?.referral_stats?.total_commission || 0)}
                 </p>
               </div>
             </div>
@@ -173,7 +235,7 @@ export default function UserDashboard() {
                 <CardContent className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg subscription-header">
                     <div>
-                      <h3 className="font-medium text-gray-900">{subscription.plan?.name}</h3>
+                      <h3 className="font-medium text-gray-900">{subscription.plan_name}</h3>
                       <p className="text-sm text-gray-600">到期时间: {formatDate(subscription.end_date)}</p>
                     </div>
                     <Badge 
@@ -267,7 +329,7 @@ export default function UserDashboard() {
                         <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-2 order-item">
                           <div className="order-details">
                             <p className="font-medium text-gray-900">
-                              {order.plan?.name}
+                              {order.plan?.name || order.plan_name}
                             </p>
                             <p className="text-sm text-gray-600">
                               订单号: {order.order_no}
@@ -350,7 +412,7 @@ export default function UserDashboard() {
                 <CardContent>
                   <div className="text-center py-4">
                     <p className="text-3xl font-bold text-gray-900">
-                      ¥{stats?.balance || 0}
+                      ¥{dashboardData?.user?.balance || 0}
                     </p>
                     <p className="text-gray-600 mt-2">可用余额</p>
                     <Button className="mt-4 quick-action-btn" asChild size="sm">

@@ -33,6 +33,10 @@ fi
 echo "🏗️ 创建数据库表结构..."
 wrangler d1 execute xpanel-db --env production --file=./database/schema.sql
 
+# 执行 EdgeTunnel 数据库结构创建
+echo "🏗️ 创建 EdgeTunnel 数据库表结构..."
+wrangler d1 execute xpanel-db --env production --file=./database/edgetunnel-schema.sql
+
 # 插入初始数据
 echo "📊 插入初始数据..."
 wrangler d1 execute xpanel-db --env production --file=./database/seed.sql

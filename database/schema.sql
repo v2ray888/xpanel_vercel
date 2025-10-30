@@ -33,8 +33,11 @@ CREATE TABLE IF NOT EXISTS plans (
     is_active TINYINT DEFAULT 1,
     is_public TINYINT DEFAULT 1, -- 是否公开可见
     is_popular TINYINT DEFAULT 0, -- 是否推荐
+    edgetunnel_group_id INTEGER, -- EdgeTunnel 服务组ID (保留以兼容旧数据)
+    edgetunnel_group_ids TEXT, -- EdgeTunnel 服务组ID数组
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (edgetunnel_group_id) REFERENCES edgetunnel_groups(id)
 );
 
 -- 用户订阅表
@@ -70,6 +73,7 @@ CREATE TABLE IF NOT EXISTS servers (
     flag_emoji VARCHAR(10),
     load_balance INTEGER DEFAULT 0, -- 负载权重
     max_users INTEGER DEFAULT 1000, -- 最大用户数
+    device_limit INTEGER DEFAULT 3, -- 设备数限制
     current_users INTEGER DEFAULT 0, -- 当前用户数
     sort_order INTEGER DEFAULT 0, -- 排序
     is_active TINYINT DEFAULT 1,

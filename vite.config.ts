@@ -30,7 +30,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8787',
+        target: 'http://127.0.0.1:8787', // 修复端口为8787，与后端服务器实际运行端口一致
         changeOrigin: true,
         secure: false,
       }

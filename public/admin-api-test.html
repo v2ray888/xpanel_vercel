@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员API测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            border-left: 4px solid #ffffff;
+        }
+        button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        }
+        input {
+            padding: 12px;
+            margin: 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+            border-left: 4px solid #f44336;
+        }
+        .info {
+            background: rgba(33, 150, 243, 0.3);
+            border-left: 4px solid #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 管理员API测试工具</h1>
+            <p>用于测试管理员后台API接口</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 管理员登录</h3>
+            <input type="email" id="email" placeholder="管理员邮箱" value="admin@xpanel.com">
+            <input type="password" id="password" placeholder="密码" value="admin123">
+            <button onclick="adminLogin()">登录</button>
+            <div id="login-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 仪表板API测试</h3>
+            <button onclick="testDashboardAPI()">测试仪表板API</button>
+            <button onclick="testOrdersAPI()">测试订单API</button>
+            <button onclick="testUsersAPI()">测试用户API</button>
+            <div id="api-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 页面组件测试</h3>
+            <button onclick="testReactComponents()">测试React组件</button>
+            <div id="component-result"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+
+        async function adminLogin() {
+            const resultDiv = document.getElementById('login-result');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                resultDiv.innerHTML = '<div class="status info">🔄 正在登录...</div>';
+                
+                const response = await fetch('/api/auth/admin-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.data.token;
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ 管理员登录成功</strong><br>
+                            Token: ${authToken.substring(0, 30)}...
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            <strong>❌ 登录失败</strong><br>
+                            错误信息: ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 请求失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testDashboardAPI() {
+            const resultDiv = document.getElementById('api-result');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 未认证</strong><br>
+                        请先登录管理员账户
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = '<div class="status info">🔄 正在测试仪表板API...</div>';
+                
+                // 测试仪表板统计数据
+                const statsResponse = await fetch('/api/admin/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const statsData = await statsResponse.json();
+                
+                if (statsData.success) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ 仪表板API测试成功</strong><br>
+                            总用户数: ${statsData.data.totalUsers}<br>
+                            总收入: ${statsData.data.totalRevenue}<br>
+                            总订单数: ${statsData.data.totalOrders}
+                        </div>
+                        <pre>${JSON.stringify(statsData.data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            <strong>❌ 仪表板API测试失败</strong><br>
+                            错误信息: ${statsData.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 仪表板API请求失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testOrdersAPI() {
+            const resultDiv = document.getElementById('api-result');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 未认证</strong><br>
+                        请先登录管理员账户
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = '<div class="status info">🔄 正在测试订单API...</div>';
+                
+                // 测试最近订单
+                const ordersResponse = await fetch('/api/admin/recent-orders', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const ordersData = await ordersResponse.json();
+                
+                if (ordersData.success) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ 订单API测试成功</strong><br>
+                            订单数量: ${ordersData.data.length}
+                        </div>
+                        <pre>${JSON.stringify(ordersData.data.slice(0, 3), null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            <strong>❌ 订单API测试失败</strong><br>
+                            错误信息: ${ordersData.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 订单API请求失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testUsersAPI() {
+            const resultDiv = document.getElementById('api-result');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 未认证</strong><br>
+                        请先登录管理员账户
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = '<div class="status info">🔄 正在测试用户API...</div>';
+                
+                // 测试最近用户
+                const usersResponse = await fetch('/api/admin/recent-users', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const usersData = await usersResponse.json();
+                
+                if (usersData.success) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ 用户API测试成功</strong><br>
+                            用户数量: ${usersData.data.length}
+                        </div>
+                        <pre>${JSON.stringify(usersData.data.slice(0, 3), null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            <strong>❌ 用户API测试失败</strong><br>
+                            错误信息: ${usersData.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ 用户API请求失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function testReactComponents() {
+            const resultDiv = document.getElementById('component-result');
+            
+            resultDiv.innerHTML = `
+                <div class="status info">
+                    <strong>ℹ️ React组件测试</strong><br>
+                    此测试需要在React环境中运行。<br>
+                    请访问 <a href="/admin/dashboard" style="color: #4CAF50; text-decoration: underline;">/admin/dashboard</a> 查看实际页面效果。
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

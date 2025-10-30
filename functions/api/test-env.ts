@@ -1,9 +1,17 @@
 interface Env {
   DB: any;
   JWT_SECRET: string;
+  PAYMENT_SECRET: string;
 }
 
 export const onRequestGet = async ({ env }: { env: Env }) => {
+  console.log('Test env route called');
+  console.log('Environment variables:', {
+    JWT_SECRET: env.JWT_SECRET,
+    hasJWTSecret: !!env.JWT_SECRET,
+    secretLength: env.JWT_SECRET ? env.JWT_SECRET.length : 0
+  });
+  
   try {
     // 检查环境变量
     const hasJwtSecret = !!env.JWT_SECRET;

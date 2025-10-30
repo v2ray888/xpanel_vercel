@@ -36,8 +36,8 @@ export default function OrdersPage() {
     },
   })
 
-  const orders = ordersData?.data || []
-  const totalPages = Math.ceil((ordersData?.total || 0) / limit)
+  const orders = ordersData?.orders || []
+  const totalPages = ordersData?.pagination?.totalPages || 1
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order)
@@ -119,7 +119,7 @@ export default function OrdersPage() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-4 mb-2">
                       <h3 className="text-lg font-medium text-gray-900">
-                        {order.plan?.name}
+                        {order.plan_name}
                       </h3>
                       <Badge className={getStatusColor(order.status, 'order')}>
                         {getStatusText(order.status, 'order')}
@@ -296,19 +296,19 @@ export default function OrdersPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">套餐名称:</span>
-                    <span>{selectedOrder.plan?.name}</span>
+                    <span>{selectedOrder.plan_name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">有效期:</span>
-                    <span>{selectedOrder.plan?.duration_days} 天</span>
+                    <span>{selectedOrder.duration_days} 天</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">流量:</span>
-                    <span>{selectedOrder.plan?.traffic_gb} GB</span>
+                    <span>{selectedOrder.traffic_gb} GB</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">设备数:</span>
-                    <span>{selectedOrder.plan?.device_limit} 台</span>
+                    <span>{selectedOrder.device_limit || 0} 台</span>
                   </div>
                 </div>
               </div>

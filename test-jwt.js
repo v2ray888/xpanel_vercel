@@ -1,21 +1,21 @@
-// 测试JWT验证
+// 测试JWT验证逻辑
 const { verify } = require('hono/jwt');
 
-// 使用与wrangler.toml中相同的JWT_SECRET
-const JWT_SECRET = "Q8|)X)+Ac37*fSP%6o5wC#J7K=D)V@Ut";
-
-// 测试令牌
-const testToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwidXNlcm5hbWUiOiLnlKjmiLcxIiwiZW1haWwiOiJ1c2VyMUBleGFtcGxlLmNvbSIsInJvbGUiOjAsImV4cCI6MTc1OTY3NzM3NCwiaWF0IjoxNzU5MDcyNTc0fQ.h3QjiAFi2hwVpb_sTe8xpneO5Tss5Dfp4VN7iuOn3o4";
-
-async function testJwt() {
+async function testJWT() {
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhZG1pbkB4cGFuZWwuY29tIiwicm9sZSI6MSwiZXhwIjoxNzYyMzA5OTg2fQ.ksE2CIa3NbZ5MYvBaLD1mJb8Kna_n0cpUKLxplgjEqk';
+  const secret = 'Q8|)X)+Ac37*fSP%6o5wC#J7K=D)V@Ut';
+  
+  console.log('Testing JWT verification...');
+  console.log('Token:', token);
+  console.log('Secret:', secret);
+  
   try {
-    const payload = await verify(testToken, JWT_SECRET);
-    console.log("JWT验证成功:");
-    console.log(payload);
+    const payload = await verify(token, secret);
+    console.log('Token verified successfully!');
+    console.log('Payload:', payload);
   } catch (error) {
-    console.log("JWT验证失败:");
-    console.log(error.message);
+    console.error('Token verification failed:', error);
   }
 }
 
-testJwt();
+testJWT();

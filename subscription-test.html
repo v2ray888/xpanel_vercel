@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订阅地址测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>订阅地址功能测试</h1>
+        
+        <div class="form-group">
+            <label for="subscriptionUrl">订阅地址:</label>
+            <input type="text" id="subscriptionUrl" value="http://localhost:8787/api/subscribe/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInN1YnNjcmlwdGlvbklkIjoxLCJleHAiOjE3NjQzMDM4MTQsImlhdCI6MTc2MTY4MzAxNCwidHlwZSI6InN1YnNjcmlwdGlvbiJ9.Kh56RRcMJZ1_uvodUsdAA5gnOY9pMiQJW2W1_p-eDLE">
+        </div>
+        
+        <div class="form-group">
+            <button onclick="testSubscriptionApi()">测试订阅地址API</button>
+        </div>
+        
+        <div class="form-group">
+            <button onclick="decodeSubscriptionContent()">解码订阅内容</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 显示结果
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = 'result ' + type;
+            resultDiv.style.display = 'block';
+        }
+        
+        // 测试订阅地址API
+        async function testSubscriptionApi() {
+            try {
+                const subscriptionUrl = document.getElementById('subscriptionUrl').value;
+                if (!subscriptionUrl) {
+                    showResult('请提供订阅地址', 'error');
+                    return;
+                }
+                
+                const response = await fetch(subscriptionUrl);
+                const text = await response.text();
+                
+                if (response.ok) {
+                    showResult('订阅地址API测试成功!\n状态码: ' + response.status + '\n响应内容: ' + text, 'success');
+                    // 保存响应内容到localStorage以便解码
+                    localStorage.setItem('subscriptionContent', text);
+                } else {
+                    showResult('订阅地址API测试失败!\n状态码: ' + response.status + '\n错误信息: ' + text, 'error');
+                }
+            } catch (error) {
+                showResult('错误: ' + error.message, 'error');
+            }
+        }
+        
+        // 解码订阅内容
+        async function decodeSubscriptionContent() {
+            try {
+                const encodedContent = localStorage.getItem('subscriptionContent');
+                if (!encodedContent) {
+                    showResult('请先测试订阅地址API获取内容', 'error');
+                    return;
+                }
+                
+                // 解码base64内容
+                const decodedContent = atob(encodedContent);
+                showResult('解码后的订阅内容:\n' + decodedContent, 'info');
+            } catch (error) {
+                showResult('解码失败: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

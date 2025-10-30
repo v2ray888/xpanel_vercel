@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { 
   Users, 
@@ -13,8 +14,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
+import { Chart } from '@/components/ui/Chart'
+import { PeriodSelector } from '@/components/ui/PeriodSelector'
 
 export default function AdminDashboard() {
+  const [revenuePeriod, setRevenuePeriod] = useState('7d')
+  const [usersPeriod, setUsersPeriod] = useState('7d')
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
@@ -35,6 +41,22 @@ export default function AdminDashboard() {
     queryKey: ['admin-recent-users'],
     queryFn: async () => {
       const response = await adminApi.getRecentUsers()
+      return response.data.data
+    },
+  })
+
+  const { data: revenueChart, isLoading: revenueChartLoading } = useQuery({
+    queryKey: ['admin-revenue-chart', revenuePeriod],
+    queryFn: async () => {
+      const response = await adminApi.getRevenueChart(revenuePeriod)
+      return response.data.data
+    },
+  })
+
+  const { data: usersChart, isLoading: usersChartLoading } = useQuery({
+    queryKey: ['admin-users-chart', usersPeriod],
+    queryFn: async () => {
+      const response = await adminApi.getUsersChart(usersPeriod)
       return response.data.data
     },
   })
@@ -149,31 +171,115 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Chart */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="flex items-center">
               <TrendingUp className="w-5 h-5 mr-2" />
               收入趋势
             </CardTitle>
+            <PeriodSelector
+              value={revenuePeriod}
+              onChange={setRevenuePeriod}
+            />
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              收入图表 (待实现)
-            </div>
+            {revenueChartLoading ? (
+              <div className="h-64 flex items-center justify-center">
+                <LoadingSpinner />
+              </div>
+            ) : revenueChart?.chart_data && revenueChart.chart_data.length > 0 ? (
+              <div className="space-y-4">
+                {/* Chart Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">总收入</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {formatCurrency(revenueChart.stats.total_revenue)}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {revenueChart.stats.growth_rate > 0 ? '+' : ''}{revenueChart.stats.growth_rate}% 环比
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">总订单</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {revenueChart.stats.total_orders}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      成功率 {revenueChart.stats.total_all_orders > 0 
+                        ? Math.round((revenueChart.stats.total_orders / revenueChart.stats.total_all_orders) * 100) 
+                        : 0}%
+                    </p>
+                  </div>
+                </div>
+                {/* Chart */}
+                <Chart
+                  data={revenueChart.chart_data}
+                  type="revenue"
+                  period={revenuePeriod}
+                  height={240}
+                />
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-500">
+                暂无收入数据
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* User Growth Chart */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="flex items-center">
               <Users className="w-5 h-5 mr-2" />
               用户增长
             </CardTitle>
+            <PeriodSelector
+              value={usersPeriod}
+              onChange={setUsersPeriod}
+            />
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              用户增长图表 (待实现)
-            </div>
+            {usersChartLoading ? (
+              <div className="h-64 flex items-center justify-center">
+                <LoadingSpinner />
+              </div>
+            ) : usersChart?.chart_data && usersChart.chart_data.length > 0 ? (
+              <div className="space-y-4">
+                {/* Chart Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">新增用户</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {usersChart.stats.new_users_period}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {usersChart.stats.growth_rate > 0 ? '+' : ''}{usersChart.stats.growth_rate}% 环比
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">活跃用户</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {usersChart.stats.active_users}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      总计 {usersChart.stats.total_users} 用户
+                    </p>
+                  </div>
+                </div>
+                {/* Chart */}
+                <Chart
+                  data={usersChart.chart_data}
+                  type="users"
+                  period={usersPeriod}
+                  height={240}
+                />
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-500">
+                暂无用户数据
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

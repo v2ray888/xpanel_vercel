@@ -74,6 +74,11 @@ export interface Order {
   user_id: number
   plan_id: number
   plan?: Plan
+  plan_name?: string
+  plan_description?: string
+  duration_days?: number
+  traffic_gb?: number
+  device_limit?: number
   amount: number
   discount_amount: number
   final_amount: number

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test DB Query</title>
+</head>
+<body>
+    <h1>Test DB Query</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            try {
+                // Login first
+                const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@example.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const loginData = await loginResponse.json();
+                console.log('Login result:', loginData);
+                
+                if (!loginData.success) {
+                    document.getElementById('result').innerHTML = '<p>Login failed: ' + loginData.message + '</p>';
+                    return;
+                }
+                
+                const token = loginData.token;
+                
+                // Get all plans
+                const allPlansResponse = await fetch('http://localhost:3000/api/admin/plans', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const allPlansData = await allPlansResponse.json();
+                console.log('All plans:', allPlansData);
+                
+                // Get single plan
+                const singlePlanResponse = await fetch('http://localhost:3000/api/admin/plans/10', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const singlePlanData = await singlePlanResponse.json();
+                console.log('Single plan:', singlePlanData);
+                
+                // Display results
+                document.getElementById('result').innerHTML = `
+                    <h2>All Plans</h2>
+                    <pre>${JSON.stringify(allPlansData, null, 2)}</pre>
+                    <h2>Single Plan (ID: 10)</h2>
+                    <pre>${JSON.stringify(singlePlanData, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = '<p>Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

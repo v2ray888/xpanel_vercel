@@ -1,58 +1,35 @@
-// functions/api/auth/login.ts
-import { sign } from 'hono/jwt'
-import { HTTPException } from 'hono/http-exception'
-import bcrypt from 'bcryptjs'
-import { z } from 'zod'
+import { z } from 'zod';
+import bcrypt from 'bcryptjs';
+import { sign } from 'hono/jwt';
+import { getDB } from '../../utils/db';
 
 const loginSchema = z.object({
   email: z.string().email('请输入有效的邮箱地址'),
   password: z.string().min(1, '请输入密码'),
-})
+});
 
-// CORS preflight response
-export const onRequestOptions = async ({ request }: { request: Request }) => {
-  const origin = request.headers.get('Origin');
-  
-  // 在开发环境中允许所有源，在生产环境中可以更严格
-  const isDev = origin && (
-    origin.startsWith('http://localhost:') || 
-    origin.startsWith('http://127.0.0.1:') ||
-    origin.endsWith('.pages.dev')
-  );
-  
-  const allowedOrigin = isDev ? origin : '*';
-  
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': allowedOrigin,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    },
-  });
-};
-
-export const onRequestPost = async ({ request, env }: { request: Request, env: any }) => {
+export const onRequestPost: PagesFunction<{ DB: D1Database; JWT_SECRET: string }> = async (context) => {
   try {
-    const body = await request.json()
-    const { email, password } = loginSchema.parse(body)
+    const { request, env } = context;
+    const body = await request.json();
+    const { email, password } = loginSchema.parse(body);
 
-    const user = await env.DB.prepare(
-      'SELECT id, email, password_hash, role, status FROM users WHERE email = ?'
-    ).bind(email).first()
+    const db = getDB(env);
+    const user = await db.prepare(
+      'SELECT id, email, password_hash, role, status, username, referral_code, balance, commission_balance, created_at, last_login_at FROM users WHERE email = ?'
+    ).bind(email).first<any>();
 
     if (!user) {
-      throw new HTTPException(401, { message: '用户不存在或密码错误' })
+      return new Response(JSON.stringify({ success: false, message: '用户不存在或密码错误' }), { status: 401, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
 
     if (user.status !== 1) {
-      throw new HTTPException(403, { message: '账户已被禁用' })
+      return new Response(JSON.stringify({ success: false, message: '账户已被禁用' }), { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash)
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
-      throw new HTTPException(401, { message: '用户不存在或密码错误' })
+      return new Response(JSON.stringify({ success: false, message: '用户不存在或密码错误' }), { status: 401, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
 
     const token = await sign(
@@ -63,37 +40,22 @@ export const onRequestPost = async ({ request, env }: { request: Request, env: a
         exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days
       },
       env.JWT_SECRET
-    )
-    
-    // Don't send password hash to client
-    const { password_hash, ...userResponse } = user;
-
-    const origin = request.headers.get('Origin');
-    
-    // 在开发环境中允许所有源，在生产环境中可以更严格
-    const isDev = origin && (
-      origin.startsWith('http://localhost:') || 
-      origin.startsWith('http://127.0.0.1:') ||
-      origin.endsWith('.pages.dev')
     );
     
-    const allowedOrigin = isDev ? origin : '*';
+    const { password_hash, ...userResponse } = user;
 
-    const responseBody = {
+    const response = {
       success: true,
       message: '登录成功',
       data: {
         user: userResponse,
-        token,
+        token: token,
       },
-    }
+    };
 
-    return new Response(JSON.stringify(responseBody), {
+    return new Response(JSON.stringify(response), {
       status: 200,
-      headers: { 
-        'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': allowedOrigin
-      },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
     });
 
   } catch (error: any) {
@@ -103,35 +65,25 @@ export const onRequestPost = async ({ request, env }: { request: Request, env: a
     if (error instanceof z.ZodError) {
       errorMessage = error.errors.map(e => e.message).join(', ');
       statusCode = 400;
-    } else if (error instanceof HTTPException) {
-      errorMessage = error.message;
-      statusCode = error.status;
     } else {
         errorMessage = error.message || '发生未知错误';
     }
-
-    const origin = request.headers.get('Origin');
     
-    // 在开发环境中允许所有源，在生产环境中可以更严格
-    const isDev = origin && (
-      origin.startsWith('http://localhost:') || 
-      origin.startsWith('http://127.0.0.1:') ||
-      origin.endsWith('.pages.dev')
-    );
-    
-    const allowedOrigin = isDev ? origin : '*';
-
-    const errorBody = {
-      success: false,
-      message: errorMessage,
-    }
-
-    return new Response(JSON.stringify(errorBody), {
+    return new Response(JSON.stringify({ success: false, message: errorMessage }), {
       status: statusCode,
-      headers: { 
-        'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': allowedOrigin
-      },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
     });
   }
-}
+};
+
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+};

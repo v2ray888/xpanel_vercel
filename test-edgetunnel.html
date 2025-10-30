@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EdgeTunnel API Test</title>
+</head>
+<body>
+    <h1>EdgeTunnel API Test</h1>
+    <button id="testGroups">Test Get Groups</button>
+    <button id="testCreateGroup">Test Create Group</button>
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+        const resultDiv = document.getElementById('result');
+
+        // 测试获取服务组
+        document.getElementById('testGroups').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/edgetunnel/groups`);
+                const data = await response.json();
+                resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+
+        // 测试创建服务组
+        document.getElementById('testCreateGroup').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/edgetunnel/groups`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'Test Group',
+                        description: 'Test group for EdgeTunnel',
+                        api_endpoint: 'https://api.example.com',
+                        api_key: 'test-api-key',
+                        max_users: 100
+                    })
+                });
+                const data = await response.json();
+                resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

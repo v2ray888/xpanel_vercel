@@ -10,11 +10,13 @@ import {
   TrendingUp, 
   DollarSign,
   CreditCard,
+  Percent,
   Settings,
   Menu, 
   X,
   LogOut,
-  Shield
+  Shield,
+  Globe
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
@@ -25,8 +27,10 @@ const navigation = [
   { name: '用户管理', href: '/admin/users', icon: Users },
   { name: '套餐管理', href: '/admin/plans', icon: Package },
   { name: '节点管理', href: '/admin/servers', icon: Server },
+  { name: 'EdgeTunnel', href: '/admin/edgetunnel', icon: Globe },
   { name: '订单管理', href: '/admin/orders', icon: ShoppingBag },
   { name: '兑换码管理', href: '/admin/redemption', icon: Gift },
+  { name: '优惠码管理', href: '/admin/coupons', icon: Percent },
   { name: '推广管理', href: '/admin/referrals', icon: TrendingUp },
   { name: '财务管理', href: '/admin/finance', icon: DollarSign },
   { name: '提现管理', href: '/admin/withdrawals', icon: CreditCard },

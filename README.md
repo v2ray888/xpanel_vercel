@@ -131,6 +131,16 @@ database_name = "xpanel-db"
 database_id = "your-database-id"
 ```
 
+### Vercel 设置
+
+在 Vercel 项目设置中配置以下环境变量：
+
+- `DATABASE_URL`: Neon PostgreSQL 连接字符串
+- `JWT_SECRET`: JWT 签名密钥
+- `PAYMENT_SECRET`: 支付回调验证密钥
+
+查看 [DEPLOYMENT_VERCEL.md](DEPLOYMENT_VERCEL.md) 获取详细部署指南。
+
 ## 📁 项目结构
 
 ```
@@ -225,3 +235,5 @@ cloudflare_xpanel/
 - 基础用户和管理员功能
 - Cloudflare Pages 部署支持
 - D1 数据库集成
+- Vercel 部署支持
+- Neon PostgreSQL 数据库支持

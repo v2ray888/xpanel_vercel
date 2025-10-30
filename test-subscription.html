@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订阅地址测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>订阅地址功能测试</h1>
+        
+        <div class="form-group">
+            <label for="jwtSecret">JWT_SECRET:</label>
+            <input type="text" id="jwtSecret" value="a-very-simple-and-long-secret-key-for-testing">
+        </div>
+        
+        <div class="form-group">
+            <button onclick="testJwtSecret()">1. 测试JWT Secret配置</button>
+        </div>
+        
+        <div class="form-group">
+            <button onclick="generateSubscriptionToken()">2. 生成订阅令牌</button>
+        </div>
+        
+        <div class="form-group">
+            <label for="subscriptionToken">订阅令牌:</label>
+            <input type="text" id="subscriptionToken" placeholder="点击上面按钮生成令牌">
+        </div>
+        
+        <div class="form-group">
+            <button onclick="testSubscriptionApi()">3. 测试订阅地址API</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 显示结果
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = 'result ' + type;
+            resultDiv.style.display = 'block';
+        }
+        
+        // 测试JWT Secret配置
+        async function testJwtSecret() {
+            try {
+                const response = await fetch('http://localhost:3000/api/test-jwt-secret');
+                const data = await response.json();
+                showResult(JSON.stringify(data, null, 2), 'info');
+            } catch (error) {
+                showResult('错误: ' + error.message, 'error');
+            }
+        }
+        
+        // 生成订阅令牌
+        async function generateSubscriptionToken() {
+            try {
+                const jwtSecret = document.getElementById('jwtSecret').value;
+                const response = await fetch('http://localhost:3000/api/user/generate-subscription-token', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzMwMDgwODQ2fQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('生成令牌响应:', data);
+                
+                if (data.success) {
+                    document.getElementById('subscriptionToken').value = data.data.token;
+                    showResult('令牌生成成功:\n' + JSON.stringify(data, null, 2), 'success');
+                } else {
+                    showResult('令牌生成失败:\n' + JSON.stringify(data, null, 2), 'error');
+                }
+            } catch (error) {
+                showResult('错误: ' + error.message, 'error');
+            }
+        }
+        
+        // 测试订阅地址API
+        async function testSubscriptionApi() {
+            try {
+                const token = document.getElementById('subscriptionToken').value;
+                if (!token) {
+                    showResult('请先生成订阅令牌', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`http://localhost:3000/api/subscribe/${token}`);
+                const text = await response.text();
+                
+                if (response.ok) {
+                    showResult('订阅地址API测试成功!\n状态码: ' + response.status + '\n响应内容: ' + text, 'success');
+                } else {
+                    showResult('订阅地址API测试失败!\n状态码: ' + response.status + '\n错误信息: ' + text, 'error');
+                }
+            } catch (error) {
+                showResult('错误: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

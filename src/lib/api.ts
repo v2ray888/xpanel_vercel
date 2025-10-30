@@ -66,7 +66,15 @@ api.interceptors.response.use(
           toast.error('请求过于频繁，请稍后再试')
           break
         case 500:
-          toast.error('服务器内部错误')
+          // Special handling for 500 errors that might be due to expired tokens
+          if (data.message && data.message.includes('expired')) {
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('user')
+            window.location.href = '/login'
+            toast.error('登录已过期，请重新登录')
+          } else {
+            toast.error('服务器内部错误')
+          }
           break
         default:
           toast.error(data.message || '请求失败')
@@ -137,7 +145,7 @@ export const ordersApi = {
     api.post(`/api/orders/${id}/pay`),
   
   getUserOrders: (params?: any) =>
-    api.get('/api/users/orders', { params }),
+    api.get('/api/user/orders', { params }),
   
   getAll: (params?: any) =>
     api.get('/api/admin/orders', { params }),
@@ -187,10 +195,16 @@ export const usersApi = {
     api.put('/api/users/password', data),
   
   getSubscription: () =>
-    api.get('/api/users/subscription'),
+    api.get('/api/user/subscription'),
+  
+  generateSubscriptionToken: () =>
+    api.post('/api/user/generate-subscription-token'),
   
   getStats: () =>
-    api.get('/api/users/stats'),
+    api.get('/api/user/dashboard'),
+  
+  getOrders: (params?: any) =>
+    api.get('/api/user/orders', { params }),
   
   // Admin endpoints
   getAll: (params?: any) =>
@@ -227,6 +241,12 @@ export const redemptionApi = {
     api.post('/api/admin/redemption/batch-delete', { ids }),
 }
 
+// Admin Redemption API
+export const adminRedemptionApi = {
+  generate: (data: any) => 
+    api.post('/api/admin/redemption/generate', data),
+}
+
 // Referral API
 export const referralApi = {
   getStats: () =>
@@ -259,6 +279,12 @@ export const referralApi = {
 export const dashboardApi = {
   getStats: () =>
     api.get('/api/admin/stats'),
+  
+  getRevenueChart: (period: string = '7d') =>
+    api.get('/api/admin/charts/revenue', { params: { period } }),
+  
+  getUsersChart: (period: string = '7d') =>
+    api.get('/api/admin/charts/users', { params: { period } }),
   
   getChartData: (type: string, period: string) =>
     api.get(`/api/admin/chart/${type}`, { params: { period } }),
@@ -309,7 +335,7 @@ export const withdrawalApi = {
 
 // Finance API
 export const financeApi = {
-  getStats: () => api.get('/api/admin/finance/stats'),
+  getStats: () => api.get('/api/admin/stats'),
   getWithdrawals: (params?: { page?: number; limit?: number; status?: number }) =>
     api.get('/api/withdrawals/admin', { params }),
   processWithdrawal: (id: number, data: { status: number; admin_note?: string }) =>
@@ -352,4 +378,29 @@ export const adminApi = {
   getStats: () => dashboardApi.getStats(),
   getRecentOrders: () => api.get('/api/admin/recent-orders'),
   getRecentUsers: () => api.get('/api/admin/recent-users'),
+  
+  // Charts
+  getRevenueChart: (period?: string) => dashboardApi.getRevenueChart(period),
+  getUsersChart: (period?: string) => dashboardApi.getUsersChart(period),
+}
+
+// Coupons API
+export const couponsApi = {
+  getAll: (params?: any) =>
+    api.get('/api/admin/coupons', { params }),
+  
+  getById: (id: number) =>
+    api.get(`/api/admin/coupons/${id}`),
+  
+  create: (data: any) =>
+    api.post('/api/admin/coupons', data),
+  
+  update: (id: number, data: any) =>
+    api.put(`/api/admin/coupons/${id}`, data),
+  
+  delete: (id: number) =>
+    api.delete(`/api/admin/coupons/${id}`),
+  
+  validate: (data: { code: string; amount: number; user_id?: number }) =>
+    api.post('/api/coupons/validate', data),
 }

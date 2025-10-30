@@ -153,6 +153,9 @@ export const onRequestPost = async ({ request, env }: { request: Request, env: a
         ).run();
       }
 
+      // Auto-assign EdgeTunnel group to user
+      await autoAssignEdgeTunnelGroup(env.DB, userId, redemptionCode.plan_id);
+
       return new Response(JSON.stringify({ 
         success: true, 
         message: '兑换成功！套餐已激活',
@@ -195,3 +198,150 @@ export const onRequestPost = async ({ request, env }: { request: Request, env: a
     });
   }
 };
+
+// Auto-assign EdgeTunnel group to user based on plan
+export async function autoAssignEdgeTunnelGroup(db: any, userId: number, planId: number) {
+  try {
+    console.log(`开始自动分配 EdgeTunnel 服务组: userId=${userId}, planId=${planId}`);
+    
+    // Get the EdgeTunnel groups associated with this plan
+    const plan = await db.prepare(`
+      SELECT edgetunnel_group_ids FROM plans WHERE id = ?
+    `).bind(planId).first();
+    
+    console.log('套餐信息:', plan);
+
+    let groupIds = [];
+    if (plan && plan.edgetunnel_group_ids) {
+      try {
+        groupIds = JSON.parse(plan.edgetunnel_group_ids);
+        console.log('解析后的服务组 IDs:', groupIds);
+      } catch (e) {
+        console.error('Failed to parse edgetunnel_group_ids:', e);
+      }
+    }
+
+    // If no groups are associated with the plan, assign the first active group
+    if (!groupIds || groupIds.length === 0) {
+      console.log('没有关联的服务组，分配默认服务组');
+      const defaultGroup = await db.prepare(`
+        SELECT id FROM edgetunnel_groups 
+        WHERE is_active = 1 
+        ORDER BY id ASC 
+        LIMIT 1
+      `).first();
+
+      if (defaultGroup) {
+        groupIds = [defaultGroup.id];
+        console.log('默认服务组 ID:', defaultGroup.id);
+      }
+    } else {
+      console.log('使用套餐关联的服务组:', groupIds);
+    }
+
+    // 为用户生成 UUID (使用简单的随机字符串生成方法)
+    function generateUUID(): string {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+    
+    const userUUID = generateUUID();
+    console.log(`为用户 ${userId} 生成 UUID: ${userUUID}`);
+
+    // Assign user to all nodes in the associated groups
+    for (const groupId of groupIds) {
+      console.log(`处理服务组 ${groupId}`);
+      
+      // Get service group details (including API endpoint and key)
+      const group = await db.prepare(`
+        SELECT id, name, api_endpoint, api_key FROM edgetunnel_groups 
+        WHERE id = ? AND is_active = 1
+      `).bind(groupId).first();
+      
+      console.log(`服务组详情:`, group);
+
+      if (!group) {
+        console.log(`服务组 ${groupId} 不存在或未激活，跳过`);
+        continue;
+      }
+
+      // Get all active nodes in this group
+      const nodes = await db.prepare(`
+        SELECT id FROM edgetunnel_nodes 
+        WHERE group_id = ? AND is_active = 1 
+        ORDER BY id ASC
+      `).bind(groupId).all();
+      
+      console.log(`服务组 ${groupId} 中的活跃节点:`, nodes);
+
+      if (nodes && nodes.results && nodes.results.length > 0) {
+        for (const node of nodes.results) {
+          console.log(`处理节点 ${node.id}`);
+          
+          // Check if user is already assigned to this node
+          const existingAssignment = await db.prepare(`
+            SELECT id FROM edgetunnel_user_nodes 
+            WHERE user_id = ? AND node_id = ?
+          `).bind(userId, node.id).first();
+          
+          console.log(`节点 ${node.id} 的现有分配:`, existingAssignment);
+
+          if (!existingAssignment) {
+            console.log(`为用户 ${userId} 分配节点 ${node.id}`);
+            // Assign user to the node
+            await db.prepare(`
+              INSERT INTO edgetunnel_user_nodes (user_id, group_id, node_id, is_active)
+              VALUES (?, ?, ?, 1)
+            `).bind(userId, groupId, node.id).run();
+            console.log(`用户 ${userId} 成功分配到节点 ${node.id}`);
+          } else {
+            console.log(`用户 ${userId} 已经分配到节点 ${node.id}`);
+          }
+        }
+      } else {
+        console.log(`服务组 ${groupId} 中没有活跃节点`);
+      }
+
+      // 调用外部 EdgeTunnel Multi-UUID 服务 API
+      try {
+        // 构造正确的 API 端点 URL
+        const apiEndpoint = group.api_endpoint.endsWith('/') ? 
+          `${group.api_endpoint}api/uuid/add` : 
+          `${group.api_endpoint}/api/uuid/add`;
+        
+        console.log(`调用服务组 ${groupId} 的外部 API: ${apiEndpoint}`);
+        
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${group.api_key}`
+          },
+          body: JSON.stringify({
+            uuid: userUUID
+          })
+        });
+
+        console.log(`外部 API 调用响应状态: ${response.status}`);
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`外部 API 调用成功:`, result);
+        } else {
+          const errorText = await response.text();
+          console.error(`外部 API 调用失败 (${response.status}):`, errorText);
+        }
+      } catch (apiError) {
+        console.error(`调用外部 API 时出错:`, apiError);
+      }
+    }
+    
+    console.log('自动分配完成');
+  } catch (error) {
+    console.error('Auto-assign EdgeTunnel group error:', error);
+    // Don't throw error as this is a secondary operation
+  }
+}
