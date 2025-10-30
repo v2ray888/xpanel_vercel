@@ -98,7 +98,9 @@ npm run deploy:vercel
 ```
 cloudflare_xpanel/
 ├── src/                    # 前端源码
-├── functions/              # 后端 API 函数
+├── api/                   # Vercel API 入口
+│   └── index.ts           # Vercel 入口文件
+├── functions/             # 后端 API 函数
 │   ├── _worker.ts         # 主入口文件（支持多数据库）
 │   └── utils/
 │       └── postgres-db.ts # PostgreSQL 数据库工具
