@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { jwt } from 'hono/jwt'
-import { z } from 'zod'
 import { adminRoutes } from './api/routes/admin'
 import { userRoutes } from './api/routes/users'
 import { orderRoutes } from './api/routes/orders'
